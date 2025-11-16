@@ -1,0 +1,99 @@
+/**
+ * Client 接口定义
+ */
+
+import { ClientConfig, Protocol, EventFilter, EventSubscription, SendTxResult } from './types';
+
+/**
+ * WES 客户端接口
+ */
+export interface IClient {
+  /**
+   * 调用 JSON-RPC 方法
+   * @param method 方法名
+   * @param params 参数
+   * @returns 返回结果
+   */
+  call(method: string, params: any): Promise<any>;
+
+  /**
+   * 发送已签名的原始交易
+   * @param signedTxHex 已签名的交易（十六进制字符串）
+   * @returns 交易提交结果
+   */
+  sendRawTransaction(signedTxHex: string): Promise<SendTxResult>;
+
+  /**
+   * 订阅事件（WebSocket 支持）
+   * @param filter 事件过滤器
+   * @returns 事件订阅对象
+   */
+  subscribe(filter: EventFilter): Promise<EventSubscription>;
+
+  /**
+   * 关闭连接
+   */
+  close(): Promise<void>;
+}
+
+/**
+ * Client 类型别名（导出为 Client）
+ */
+export type Client = IClient;
+
+/**
+ * 客户端配置
+ */
+export type { ClientConfig };
+
+/**
+ * 传输协议类型
+ */
+export type { Protocol };
+
+/**
+ * 创建客户端实例（工厂函数）
+ * @param config 客户端配置
+ * @returns 客户端实例
+ */
+export function createClient(config: ClientConfig): IClient {
+  const { HTTPClient } = require('./http');
+  const { WebSocketClient } = require('./websocket');
+
+  switch (config.protocol) {
+    case 'http':
+      return new HTTPClient(config);
+    case 'websocket':
+      return new WebSocketClient(config);
+    default:
+      throw new Error(`Unsupported protocol: ${config.protocol}`);
+  }
+}
+
+/**
+ * Client 类（兼容性导出，支持 new Client(config) 用法）
+ */
+export class Client implements IClient {
+  private impl: IClient;
+
+  constructor(config: ClientConfig) {
+    this.impl = createClient(config);
+  }
+
+  async call(method: string, params: any): Promise<any> {
+    return this.impl.call(method, params);
+  }
+
+  async sendRawTransaction(signedTxHex: string): Promise<SendTxResult> {
+    return this.impl.sendRawTransaction(signedTxHex);
+  }
+
+  async subscribe(filter: EventFilter): Promise<EventSubscription> {
+    return this.impl.subscribe(filter);
+  }
+
+  async close(): Promise<void> {
+    return this.impl.close();
+  }
+}
+
