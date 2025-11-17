@@ -2,6 +2,8 @@
  * Client 类型定义
  */
 
+import type { RetryConfig } from '../utils/retry';
+
 /**
  * 传输协议类型
  */
@@ -21,6 +23,8 @@ export interface ClientConfig {
   debug?: boolean;
   /** 自定义请求头 */
   headers?: Record<string, string>;
+  /** 重试配置 */
+  retry?: RetryConfig;
 }
 
 /**

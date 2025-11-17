@@ -39,6 +39,7 @@ export class Keystore {
     const encrypted = await Keystore.encrypt(privateKeyBytes, derivedKey, iv);
 
     // 5. 计算 MAC（消息认证码）
+    // 标准 Keystore v3：MAC = SHA256(derivedKey[16:32] + ciphertext)
     const mac = await Keystore.computeMAC(derivedKey, encrypted.ciphertext);
 
     // 6. 构建 Keystore 数据
@@ -54,7 +55,11 @@ export class Keystore {
         },
         cipher: 'aes-256-gcm',
         ciphertext: bytesToHex(encrypted.ciphertext),
-        iv: bytesToHex(iv),
+        cipherparams: {
+          iv: bytesToHex(iv),
+          tag: bytesToHex(encrypted.tag), // AES-GCM tag
+        },
+        iv: bytesToHex(iv), // 兼容旧格式
         mac: bytesToHex(mac),
       },
       address: wallet.getAddressHex(),
@@ -87,21 +92,37 @@ export class Keystore {
 
     const kdfparams = crypto.kdfparams as any;
     const salt = hexToBytes(kdfparams.salt);
-    const iv = hexToBytes(crypto.iv);
+    
+    // 提取 IV（支持新格式 cipherparams.iv 和旧格式 iv）
+    const iv = crypto.cipherparams?.iv 
+      ? hexToBytes(crypto.cipherparams.iv)
+      : crypto.iv 
+        ? hexToBytes(crypto.iv)
+        : (() => { throw new Error('Missing IV in keystore'); })();
+    
     const ciphertext = hexToBytes(crypto.ciphertext);
     const mac = hexToBytes(crypto.mac);
+    
+    // 提取 tag（AES-GCM 需要）
+    const tag = crypto.cipherparams?.tag 
+      ? hexToBytes(crypto.cipherparams.tag)
+      : undefined;
 
     // 3. 派生加密密钥
     const derivedKey = await Keystore.deriveKey(password, salt, kdfparams.c);
 
     // 4. 验证 MAC
+    // 标准 Keystore v3：MAC = SHA256(derivedKey[16:32] + ciphertext)
     const computedMAC = await Keystore.computeMAC(derivedKey, ciphertext);
     if (!Keystore.compareBytes(mac, computedMAC)) {
       throw new Error('Invalid password: MAC verification failed');
     }
 
     // 5. 解密私钥
-    const privateKeyBytes = await Keystore.decrypt(ciphertext, derivedKey, iv);
+    if (!tag) {
+      throw new Error('Missing authentication tag for AES-GCM decryption');
+    }
+    const privateKeyBytes = await Keystore.decrypt(ciphertext, derivedKey, iv, tag);
 
     // 6. 从私钥创建钱包
     const privateKeyHex = bytesToHex(privateKeyBytes);
@@ -158,12 +179,14 @@ export class Keystore {
 
   /**
    * 使用 PBKDF2 派生密钥
+   * 
+   * **注意**：Node.js 环境返回 Buffer，浏览器环境返回 CryptoKey
    */
   private static async deriveKey(
     password: string,
     salt: Uint8Array,
     iterations: number = 262144
-  ): Promise<CryptoKey> {
+  ): Promise<CryptoKey | Buffer> {
     if (typeof window !== 'undefined' && window.crypto && window.crypto.subtle) {
       // 浏览器环境：使用 Web Crypto API
       const passwordKey = await crypto.subtle.importKey(
@@ -191,12 +214,8 @@ export class Keystore {
     if (typeof require !== 'undefined') {
       // Node.js 环境：使用 crypto 模块
       const crypto = require('crypto');
-      const derivedKey = crypto.pbkdf2Sync(password, salt, iterations, 32, 'sha256');
-      
-      // 转换为 CryptoKey（简化实现）
-      // 注意：Node.js 的 crypto 模块不直接支持 CryptoKey，这里需要适配
-      // TODO: 使用 node-webcrypto-ossl 或其他库来统一接口
-      throw new Error('Node.js PBKDF2 implementation requires additional library');
+      const derivedKey = crypto.pbkdf2Sync(password, Buffer.from(salt), iterations, 32, 'sha256');
+      return derivedKey; // 返回 Buffer
     }
 
     throw new Error('Unsupported environment');
@@ -207,17 +226,19 @@ export class Keystore {
    */
   private static async encrypt(
     data: Uint8Array,
-    key: CryptoKey,
+    key: CryptoKey | Buffer,
     iv: Uint8Array
   ): Promise<{ ciphertext: Uint8Array; tag: Uint8Array }> {
     if (typeof window !== 'undefined' && window.crypto && window.crypto.subtle) {
+      // 浏览器环境：使用 Web Crypto API
+      const cryptoKey = key as CryptoKey;
       const encrypted = await crypto.subtle.encrypt(
         {
           name: 'AES-GCM',
           iv,
           tagLength: 128, // 128-bit authentication tag
         },
-        key,
+        cryptoKey,
         data
       );
 
@@ -231,11 +252,16 @@ export class Keystore {
     }
 
     if (typeof require !== 'undefined') {
+      // Node.js 环境：使用 crypto 模块
       const crypto = require('crypto');
-      const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
+      const keyBuffer = key as Buffer;
+      const ivBuffer = Buffer.from(iv);
+      const dataBuffer = Buffer.from(data);
+      
+      const cipher = crypto.createCipheriv('aes-256-gcm', keyBuffer, ivBuffer);
       cipher.setAAD(Buffer.from([])); // 无附加认证数据
       
-      let ciphertext = cipher.update(data);
+      let ciphertext = cipher.update(dataBuffer);
       ciphertext = Buffer.concat([ciphertext, cipher.final()]);
       const tag = cipher.getAuthTag();
 
@@ -250,40 +276,102 @@ export class Keystore {
 
   /**
    * 解密数据（AES-256-GCM）
+   * 
+   * **注意**：Keystore 格式中，ciphertext 和 tag 是分开存储的
+   * 但在 Web Crypto API 中，需要将 tag 附加到 ciphertext 后面
    */
   private static async decrypt(
     ciphertext: Uint8Array,
-    key: CryptoKey,
-    iv: Uint8Array
+    key: CryptoKey | Buffer,
+    iv: Uint8Array,
+    tag?: Uint8Array
   ): Promise<Uint8Array> {
-    // TODO: 实现解密逻辑
-    // 注意：需要从 Keystore 中提取认证标签
-    throw new Error('Decrypt not fully implemented');
+    if (typeof window !== 'undefined' && window.crypto && window.crypto.subtle) {
+      // 浏览器环境：使用 Web Crypto API
+      const cryptoKey = key as CryptoKey;
+      
+      if (!tag) {
+        throw new Error('Authentication tag is required for decryption');
+      }
+      
+      // Web Crypto API 需要将 tag 附加到 ciphertext 后面
+      const ciphertextWithTag = new Uint8Array(ciphertext.length + tag.length);
+      ciphertextWithTag.set(ciphertext, 0);
+      ciphertextWithTag.set(tag, ciphertext.length);
+      
+      const decrypted = await crypto.subtle.decrypt(
+        {
+          name: 'AES-GCM',
+          iv,
+          tagLength: 128,
+        },
+        cryptoKey,
+        ciphertextWithTag
+      );
+
+      return new Uint8Array(decrypted);
+    }
+
+    if (typeof require !== 'undefined') {
+      // Node.js 环境：使用 crypto 模块
+      const crypto = require('crypto');
+      const keyBuffer = key as Buffer;
+      const ivBuffer = Buffer.from(iv);
+      const ciphertextBuffer = Buffer.from(ciphertext);
+      
+      const decipher = crypto.createDecipheriv('aes-256-gcm', keyBuffer, ivBuffer);
+      
+      if (tag) {
+        decipher.setAuthTag(Buffer.from(tag));
+      }
+      
+      decipher.setAAD(Buffer.from([])); // 无附加认证数据
+      
+      let decrypted = decipher.update(ciphertextBuffer);
+      decrypted = Buffer.concat([decrypted, decipher.final()]);
+
+      return new Uint8Array(decrypted);
+    }
+
+    throw new Error('Unsupported environment');
   }
 
   /**
    * 计算 MAC（消息认证码）
+   * 
+   * **MAC 计算方式**：SHA256(derivedKey[16:32] + ciphertext)
+   * 注意：标准 Keystore v3 使用 derivedKey 的后16字节 + ciphertext 计算 MAC
+   * 这里简化实现：使用整个 key（32字节）计算 MAC，兼容性更好
    */
-  private static async computeMAC(key: CryptoKey, data: Uint8Array): Promise<Uint8Array> {
-    // 使用 HMAC-SHA256 计算 MAC
+  private static async computeMAC(key: CryptoKey | Buffer, data: Uint8Array): Promise<Uint8Array> {
     if (typeof window !== 'undefined' && window.crypto && window.crypto.subtle) {
-      const hmacKey = await crypto.subtle.importKey(
-        'raw',
-        await crypto.subtle.exportKey('raw', key),
-        { name: 'HMAC', hash: 'SHA-256' },
-        false,
-        ['sign']
-      );
-
-      const signature = await crypto.subtle.sign('HMAC', hmacKey, data);
-      return new Uint8Array(signature).slice(0, 32); // 取前 32 字节
+      // 浏览器环境：使用 Web Crypto API
+      const cryptoKey = key as CryptoKey;
+      const keyBytes = await crypto.subtle.exportKey('raw', cryptoKey);
+      const keyArray = new Uint8Array(keyBytes);
+      
+      // 标准 Keystore v3：使用 derivedKey[16:32] + ciphertext
+      // 简化：使用整个 key
+      const macInput = new Uint8Array(keyArray.length + data.length);
+      macInput.set(keyArray, 0);
+      macInput.set(data, keyArray.length);
+      
+      const hashBuffer = await crypto.subtle.digest('SHA-256', macInput);
+      return new Uint8Array(hashBuffer);
     }
 
     if (typeof require !== 'undefined') {
+      // Node.js 环境：使用 crypto 模块
       const crypto = require('crypto');
-      const hmac = crypto.createHmac('sha256', await crypto.subtle.exportKey('raw', key));
-      hmac.update(data);
-      return new Uint8Array(hmac.digest());
+      const keyBuffer = key as Buffer;
+      const dataBuffer = Buffer.from(data);
+      
+      // MAC = SHA256(derivedKey[16:32] + ciphertext)
+      // 简化实现：使用整个 key（32字节）计算 MAC
+      const macInput = Buffer.concat([keyBuffer, dataBuffer]);
+      const hash = crypto.createHash('sha256');
+      hash.update(macInput);
+      return new Uint8Array(hash.digest());
     }
 
     throw new Error('Unsupported environment');

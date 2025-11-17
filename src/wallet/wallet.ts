@@ -125,7 +125,7 @@ export class Wallet implements IWallet {
    * - 使用 secp256k1 签名
    * - 返回 64 字节签名（r || s，各 32 字节）
    */
-  private signHash(hash: Uint8Array): Uint8Array {
+  signHash(hash: Uint8Array): Uint8Array {
     // 使用 secp256k1 签名
     const signature = secp256k1.sign(hash, this.privateKey);
     

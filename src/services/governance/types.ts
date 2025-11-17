@@ -12,10 +12,8 @@ export interface ProposeRequest {
   title: string;
   /** 提案描述 */
   description: string;
-  /** 提案类型 */
-  proposalType: string;
-  /** 提案参数 */
-  params?: Record<string, any>;
+  /** 投票期限（区块数） */
+  votingPeriod: bigint | number;
 }
 
 /**
@@ -40,16 +38,42 @@ export interface VoteRequest {
   voter: Uint8Array;
   /** 提案ID */
   proposalId: Uint8Array;
-  /** 投票选项（支持/反对/弃权） */
-  support: 'for' | 'against' | 'abstain';
-  /** 投票权重（可选） */
-  weight?: bigint | number;
+  /** 投票选择（1=支持, 0=反对, -1=弃权） */
+  choice: number;
+  /** 投票权重 */
+  voteWeight: bigint | number;
 }
 
 /**
  * 投票结果
  */
 export interface VoteResult {
+  /** 投票ID */
+  voteId: string;
+  /** 交易哈希 */
+  txHash: string;
+  /** 是否成功 */
+  success: boolean;
+  /** 区块高度 */
+  blockHeight?: number;
+}
+
+/**
+ * 更新参数请求
+ */
+export interface UpdateParamRequest {
+  /** 提案者地址（20字节） */
+  proposer: Uint8Array;
+  /** 参数键 */
+  paramKey: string;
+  /** 参数值 */
+  paramValue: string;
+}
+
+/**
+ * 更新参数结果
+ */
+export interface UpdateParamResult {
   /** 交易哈希 */
   txHash: string;
   /** 是否成功 */

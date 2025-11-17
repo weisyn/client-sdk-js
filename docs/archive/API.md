@@ -1,10 +1,15 @@
 # API 参考文档
 
-**版本**：0.1.0-alpha  
-**状态**：draft  
-**最后更新**：2025-01-23  
-**所有者**：WES SDK 团队  
-**适用范围**：WES Client SDK (JS/TS) API 参考
+---
+
+## 📌 版本信息
+
+- **版本**：0.1.0-alpha
+- **状态**：draft
+- **最后更新**：2025-11-17
+- **最后审核**：2025-11-17
+- **所有者**：SDK 团队
+- **适用范围**：JavaScript/TypeScript 客户端 SDK（已归档）
 
 ---
 
@@ -284,13 +289,135 @@ interface TransferResult {
 
 ---
 
+## 🚀 新增功能
+
+### 请求重试机制
+
+SDK 的 HTTP 客户端内置了可配置的请求重试机制，提高应用程序在网络不稳定时的健壮性。
+
+**配置示例**：
+```typescript
+import { Client } from '@weisyn/client-sdk-js';
+
+const client = new Client({
+  endpoint: 'http://localhost:8545',
+  protocol: 'http',
+  timeout: 30000,
+  retry: {
+    maxRetries: 5,              // 最大重试次数
+    initialDelay: 1000,         // 初始延迟（毫秒）
+    maxDelay: 10000,           // 最大延迟（毫秒）
+    backoffMultiplier: 2.0,    // 退避倍数
+    retryable: (error) => {     // 自定义判断错误是否可重试
+      return error.message.includes('Network Error');
+    },
+    onRetry: (attempt, error) => {
+      console.warn(`Retry attempt ${attempt}:`, error.message);
+    },
+  },
+});
+```
+
+详细说明请参考 [性能优化指南](./PERFORMANCE.md)。
+
+---
+
+### 批量操作工具
+
+SDK 提供了批量查询和批量操作工具，提升性能。
+
+**批量查询示例**：
+```typescript
+import { batchQuery } from '@weisyn/client-sdk-js/utils/batch';
+
+const addresses = [addr1, addr2, addr3, ...];
+const results = await batchQuery(
+  addresses,
+  async (address) => await tokenService.getBalance(address, null),
+  {
+    batchSize: 50,
+    concurrency: 5,
+    onProgress: (progress) => {
+      console.log(`Progress: ${progress.percentage}%`);
+    },
+  }
+);
+```
+
+**并行执行示例**：
+```typescript
+import { parallelExecute } from '@weisyn/client-sdk-js/utils/batch';
+
+const results = await parallelExecute(
+  items,
+  async (item) => await processItem(item),
+  5 // 并发数量
+);
+```
+
+详细说明请参考 [性能优化指南](./PERFORMANCE.md)。
+
+---
+
+### 异步地址转换（浏览器支持）
+
+SDK 提供了异步版本的地址转换函数，支持浏览器环境。
+
+**示例**：
+```typescript
+import {
+  addressBytesToBase58Async,
+  addressHexToBase58Async,
+} from '@weisyn/client-sdk-js/utils/address';
+
+// 浏览器环境使用异步版本
+const base58Addr = await addressBytesToBase58Async(addressBytes);
+const base58FromHex = await addressHexToBase58Async('0x1234...');
+```
+
+详细说明请参考 [浏览器兼容性指南](./BROWSER_COMPATIBILITY.md)。
+
+---
+
+### 大文件处理工具
+
+SDK 提供了大文件处理工具，支持分块处理和流式读取。
+
+**浏览器环境示例**：
+```typescript
+import { readFileAsStream, processFileInChunks } from '@weisyn/client-sdk-js/utils/file';
+
+const file = fileInput.files?.[0];
+const data = await readFileAsStream(file, (chunk, index) => {
+  console.log(`Read chunk ${index}`);
+});
+
+await processFileInChunks(data, async (chunk, index) => {
+  return await processChunk(chunk);
+}, {
+  chunkSize: 5 * 1024 * 1024, // 5MB
+  concurrency: 3,
+  onProgress: (progress) => {
+    console.log(`Processing: ${progress.percentage}%`);
+  },
+});
+```
+
+详细说明请参考 [性能优化指南](./PERFORMANCE.md)。
+
+---
+
 ## 🔗 相关资源
 
 - [README](../README.md) - 项目说明
 - [项目结构](../PROJECT_STRUCTURE.md) - 项目结构说明
+- [最佳实践指南](./BEST_PRACTICES.md) - 使用最佳实践
+- [浏览器兼容性指南](./BROWSER_COMPATIBILITY.md) - 浏览器使用指南
+- [性能优化指南](./PERFORMANCE.md) - 性能优化建议
+- [能力对比](./CAPABILITY_COMPARISON.md) - Go/JS SDK 对比
 - [Go Client SDK](https://github.com/weisyn/client-sdk-go) - Go 版本 SDK
 
 ---
 
-**最后更新**: 2025-01-23
+**最后更新**: 2025-11-17
 

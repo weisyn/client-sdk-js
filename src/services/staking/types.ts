@@ -134,3 +134,27 @@ export interface ClaimRewardResult {
   blockHeight?: number;
 }
 
+/**
+ * 罚没请求
+ */
+export interface SlashRequest {
+  /** 被罚没的验证者地址（20字节） */
+  validatorAddr: Uint8Array;
+  /** 罚没金额 */
+  amount: bigint | number;
+  /** 罚没原因 */
+  reason: string;
+}
+
+/**
+ * 罚没结果
+ */
+export interface SlashResult {
+  /** 交易哈希 */
+  txHash: string;
+  /** 是否成功 */
+  success: boolean;
+  /** 区块高度 */
+  blockHeight?: number;
+}
+

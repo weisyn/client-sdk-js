@@ -52,3 +52,27 @@ export class WalletError extends SDKError {
   }
 }
 
+/**
+ * 参数验证错误
+ */
+export class ValidationError extends SDKError {
+  constructor(message: string, public field?: string) {
+    super(message, 'VALIDATION_ERROR');
+    this.name = 'ValidationError';
+  }
+}
+
+/**
+ * 浏览器兼容性错误
+ */
+export class BrowserCompatibilityError extends SDKError {
+  constructor(
+    message: string,
+    public feature: string,
+    public environment: 'node' | 'browser' | 'unknown'
+  ) {
+    super(message, 'BROWSER_COMPATIBILITY_ERROR');
+    this.name = 'BrowserCompatibilityError';
+  }
+}
+

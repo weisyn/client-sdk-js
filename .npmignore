@@ -1,0 +1,38 @@
+# Source files (only include dist/)
+src/
+tests/
+examples/
+
+# Development files
+*.ts
+!*.d.ts
+tsconfig.json
+jest.config.js
+rollup.config.js
+
+# Documentation (keep README.md and LICENSE)
+docs/
+PROJECT_STRUCTURE.md
+CHANGELOG.md
+
+# CI/CD
+.github/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# Environment
+.env
+.env.local
+

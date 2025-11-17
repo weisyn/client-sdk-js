@@ -5,6 +5,7 @@
 import axios, { AxiosInstance, AxiosRequestConfig } from 'axios';
 import { IClient } from './client';
 import { ClientConfig, JSONRPCRequest, JSONRPCResponse, EventFilter, EventSubscription, SendTxResult } from './types';
+import { withRetry, RetryConfig } from '../utils/retry';
 
 /**
  * HTTP 客户端实现
@@ -13,6 +14,7 @@ export class HTTPClient implements IClient {
   private config: ClientConfig;
   private httpClient: AxiosInstance;
   private requestIdCounter: number = 0;
+  private retryConfig?: RetryConfig;
 
   constructor(config: ClientConfig) {
     this.config = config;
@@ -24,10 +26,15 @@ export class HTTPClient implements IClient {
         ...config.headers,
       },
     });
+    
+    // 如果配置了重试，使用配置的重试参数
+    if (config.retry) {
+      this.retryConfig = config.retry;
+    }
   }
 
   /**
-   * 调用 JSON-RPC 方法
+   * 调用 JSON-RPC 方法（带重试机制）
    */
   async call(method: string, params: any): Promise<any> {
     const requestId = ++this.requestIdCounter;
@@ -42,7 +49,8 @@ export class HTTPClient implements IClient {
       console.log('[HTTPClient] Request:', JSON.stringify(request, null, 2));
     }
 
-    try {
+    // 执行请求（带重试）
+    const executeRequest = async () => {
       // 如果 endpoint 包含路径，使用完整路径；否则使用默认路径
       const url = this.config.endpoint.includes('/jsonrpc') 
         ? this.config.endpoint 
@@ -64,6 +72,25 @@ export class HTTPClient implements IClient {
       }
 
       return data.result;
+    };
+
+    try {
+      // 如果配置了重试，使用重试机制
+      if (this.retryConfig) {
+        return await withRetry(executeRequest, {
+          ...this.retryConfig,
+          onRetry: (attempt, error) => {
+            if (this.config.debug) {
+              console.warn(`[HTTPClient] Retry attempt ${attempt}:`, error.message);
+            }
+            if (this.retryConfig?.onRetry) {
+              this.retryConfig.onRetry(attempt, error);
+            }
+          },
+        });
+      } else {
+        return await executeRequest();
+      }
     } catch (error: any) {
       if (this.config.debug) {
         console.error('[HTTPClient] Error:', error);

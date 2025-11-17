@@ -14,6 +14,8 @@ export interface IWallet {
   signTransaction(unsignedTx: Uint8Array): Promise<Uint8Array>;
   /** 签名消息 */
   signMessage(message: Uint8Array): Promise<Uint8Array>;
+  /** 签名哈希值 */
+  signHash(hash: Uint8Array): Uint8Array;
 }
 
 /**
@@ -30,7 +32,19 @@ export interface KeystoreData {
     kdfparams: Record<string, any>;
     /** 加密算法 */
     cipher: string;
+    /** 密文（hex 编码） */
+    ciphertext: string;
     /** 加密参数 */
+    cipherparams?: {
+      /** IV（hex 编码） */
+      iv: string;
+      /** Tag（hex 编码，AES-GCM 需要） */
+      tag?: string;
+    };
+    /** IV（hex 编码，兼容旧格式） */
+    iv?: string;
+    /** MAC（hex 编码） */
+    mac: string;
   };
   /** 地址 */
   address: string;
