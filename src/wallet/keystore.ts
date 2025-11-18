@@ -145,15 +145,19 @@ export class Keystore {
    * 生成随机盐值（32 字节）
    */
   private static generateSalt(): Uint8Array {
-    if (typeof window !== 'undefined' && window.crypto && window.crypto.getRandomValues) {
+    if (typeof window !== 'undefined' && window.crypto && typeof window.crypto.getRandomValues === 'function') {
       const salt = new Uint8Array(32);
       crypto.getRandomValues(salt);
       return salt;
     }
     
-    if (typeof require !== 'undefined') {
-      const crypto = require('crypto');
-      return new Uint8Array(crypto.randomBytes(32));
+    // Node.js 环境检查
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
+      const nodeCrypto = require('crypto');
+      return new Uint8Array(nodeCrypto.randomBytes(32));
+    } catch {
+      // require 不可用
     }
 
     throw new Error('Unsupported environment');
@@ -163,15 +167,19 @@ export class Keystore {
    * 生成随机 IV（12 字节，用于 AES-GCM）
    */
   private static generateIV(): Uint8Array {
-    if (typeof window !== 'undefined' && window.crypto && window.crypto.getRandomValues) {
+    if (typeof window !== 'undefined' && window.crypto && typeof window.crypto.getRandomValues === 'function') {
       const iv = new Uint8Array(12);
       crypto.getRandomValues(iv);
       return iv;
     }
     
-    if (typeof require !== 'undefined') {
-      const crypto = require('crypto');
-      return new Uint8Array(crypto.randomBytes(12));
+    // Node.js 环境检查
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
+      const nodeCrypto = require('crypto');
+      return new Uint8Array(nodeCrypto.randomBytes(12));
+    } catch {
+      // require 不可用
     }
 
     throw new Error('Unsupported environment');
@@ -200,7 +208,7 @@ export class Keystore {
       return crypto.subtle.deriveKey(
         {
           name: 'PBKDF2',
-          salt,
+          salt: salt.buffer as ArrayBuffer,
           iterations,
           hash: 'SHA-256',
         },
@@ -211,11 +219,14 @@ export class Keystore {
       );
     }
 
-    if (typeof require !== 'undefined') {
-      // Node.js 环境：使用 crypto 模块
+    // Node.js 环境：使用 crypto 模块
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
       const crypto = require('crypto');
       const derivedKey = crypto.pbkdf2Sync(password, Buffer.from(salt), iterations, 32, 'sha256');
       return derivedKey; // 返回 Buffer
+    } catch {
+      // require 不可用
     }
 
     throw new Error('Unsupported environment');
@@ -235,11 +246,11 @@ export class Keystore {
       const encrypted = await crypto.subtle.encrypt(
         {
           name: 'AES-GCM',
-          iv,
+          iv: iv.buffer as ArrayBuffer,
           tagLength: 128, // 128-bit authentication tag
         },
         cryptoKey,
-        data
+        data.buffer as ArrayBuffer
       );
 
       const encryptedArray = new Uint8Array(encrypted);
@@ -251,8 +262,9 @@ export class Keystore {
       return { ciphertext, tag };
     }
 
-    if (typeof require !== 'undefined') {
-      // Node.js 环境：使用 crypto 模块
+    // Node.js 环境：使用 crypto 模块
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
       const crypto = require('crypto');
       const keyBuffer = key as Buffer;
       const ivBuffer = Buffer.from(iv);
@@ -266,9 +278,11 @@ export class Keystore {
       const tag = cipher.getAuthTag();
 
       return {
-        ciphertext: new Uint8Array(ciphertext),
-        tag: new Uint8Array(tag),
+        ciphertext: new Uint8Array(ciphertext.buffer, ciphertext.byteOffset, ciphertext.length),
+        tag: new Uint8Array(tag.buffer, tag.byteOffset, tag.length),
       };
+    } catch {
+      // require 不可用
     }
 
     throw new Error('Unsupported environment');
@@ -302,18 +316,19 @@ export class Keystore {
       const decrypted = await crypto.subtle.decrypt(
         {
           name: 'AES-GCM',
-          iv,
+          iv: iv.buffer as ArrayBuffer,
           tagLength: 128,
         },
         cryptoKey,
-        ciphertextWithTag
+        ciphertextWithTag.buffer as ArrayBuffer
       );
 
       return new Uint8Array(decrypted);
     }
 
-    if (typeof require !== 'undefined') {
-      // Node.js 环境：使用 crypto 模块
+    // Node.js 环境：使用 crypto 模块
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
       const crypto = require('crypto');
       const keyBuffer = key as Buffer;
       const ivBuffer = Buffer.from(iv);
@@ -330,7 +345,9 @@ export class Keystore {
       let decrypted = decipher.update(ciphertextBuffer);
       decrypted = Buffer.concat([decrypted, decipher.final()]);
 
-      return new Uint8Array(decrypted);
+      return new Uint8Array(decrypted.buffer, decrypted.byteOffset, decrypted.length);
+    } catch {
+      // require 不可用
     }
 
     throw new Error('Unsupported environment');
@@ -360,8 +377,9 @@ export class Keystore {
       return new Uint8Array(hashBuffer);
     }
 
-    if (typeof require !== 'undefined') {
-      // Node.js 环境：使用 crypto 模块
+    // Node.js 环境：使用 crypto 模块
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
       const crypto = require('crypto');
       const keyBuffer = key as Buffer;
       const dataBuffer = Buffer.from(data);
@@ -371,7 +389,10 @@ export class Keystore {
       const macInput = Buffer.concat([keyBuffer, dataBuffer]);
       const hash = crypto.createHash('sha256');
       hash.update(macInput);
-      return new Uint8Array(hash.digest());
+      const digest = hash.digest();
+      return new Uint8Array(digest.buffer, digest.byteOffset, digest.length);
+    } catch {
+      // require 不可用
     }
 
     throw new Error('Unsupported environment');

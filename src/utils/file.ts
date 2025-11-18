@@ -40,19 +40,7 @@ const DEFAULT_CHUNK_CONFIG: Required<Omit<ChunkConfig, 'onProgress'>> = {
   concurrency: 3, // 并发3个分块
 };
 
-/**
- * 分块处理结果
- */
-interface ChunkResult {
-  /** 分块索引 */
-  index: number;
-  /** 分块数据 */
-  data: Uint8Array;
-  /** 是否成功 */
-  success: boolean;
-  /** 错误信息（如果失败） */
-  error?: Error;
-}
+// ChunkResult interface removed - not used
 
 /**
  * 将文件分块
@@ -198,10 +186,9 @@ export async function processFileInChunks<T>(
  */
 export function estimateProcessingTime(
   fileSize: number,
-  chunkSize: number = DEFAULT_CHUNK_CONFIG.chunkSize,
+  _chunkSize: number = DEFAULT_CHUNK_CONFIG.chunkSize,
   processingSpeed: number = 1024 * 1024 // 1MB/s
 ): number {
-  const chunks = Math.ceil(fileSize / chunkSize);
   const estimatedTime = fileSize / processingSpeed;
   return estimatedTime;
 }

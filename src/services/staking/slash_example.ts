@@ -85,11 +85,28 @@ export async function slashViaContract(
 
   // 5. 完成交易
   const { finalizeTransactionFromDraft } = await import('../../utils/tx_utils');
-  const signedTx = await finalizeTransactionFromDraft(
-    client,
-    unsignedTxHex,
-    [signature]
-  );
+  
+  // 获取压缩公钥
+  const publicKey = wallet.publicKey;
+  let pubkeyCompressed: Uint8Array;
+  if (publicKey.length === 65) {
+    const { Point } = require('@noble/secp256k1');
+    const point = Point.fromHex(bytesToHex(publicKey.slice(1)));
+    pubkeyCompressed = point.toRawBytes(true);
+  } else if (publicKey.length === 33) {
+    pubkeyCompressed = publicKey;
+  } else {
+    throw new Error(`Invalid public key length: ${publicKey.length}`);
+  }
+
+  const signedTx = await finalizeTransactionFromDraft(client, {
+    draft: callContractParams,
+    unsignedTx: unsignedTxHex,
+    input_index: 0,
+    sighash_type: 'SIGHASH_ALL',
+    pubkey: '0x' + bytesToHex(pubkeyCompressed),
+    signature: '0x' + bytesToHex(signature),
+  });
 
   // 6. 提交交易
   const sendResult = await client.call('wes_sendRawTransaction', [signedTx]);

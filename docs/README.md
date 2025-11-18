@@ -1,117 +1,92 @@
-# WES Client SDK (JS/TS) 文档中心
+# 文档中心
 
----
+> 📚 WES Client SDK 的完整文档
 
-## 📌 版本信息
+## 📖 用户文档
 
-- **版本**：0.1.0-alpha
-- **状态**：draft
-- **最后更新**：2025-11-17
-- **最后审核**：2025-11-17
-- **所有者**：SDK 团队
-- **适用范围**：JavaScript/TypeScript 客户端 SDK
+### 快速开始
+- [快速开始指南](./getting-started.md) - 安装和基本使用
 
----
+### API 文档
+- [客户端 API](./api/client.md) - Client 接口说明
+- [服务 API](./api/services.md) - 业务服务接口
+- [钱包 API](./api/wallet.md) - Wallet 接口说明
 
-## 📖 文档导航
+### 业务指南
+- [Token 服务指南](./guides/token.md) - 代币操作
+- [Staking 服务指南](./guides/staking.md) - 质押操作
+- [Market 服务指南](./guides/market.md) - 市场操作
+- [Governance 服务指南](./guides/governance.md) - 治理操作
+- [Resource 服务指南](./guides/resource.md) - 资源操作
 
-### 🚀 快速开始
+### 示例代码
+- [示例代码](./examples/README.md) - 完整示例
+  - [简单转账](./examples/simple-transfer.md)
+  - [批量操作](./examples/batch-operations.md)
+  - [质押流程](./examples/staking-flow.md)
+  - [事件订阅](./examples/event-subscription.md)
 
-- **[快速开始](./getting-started.md)** - 安装、配置、第一个示例
-- **[概述](./overview.md)** - SDK 视角的 WES 核心概念
+### 参考文档
+- [工具函数参考](./reference/batch.md) - 批量操作工具
+- [文件工具参考](./reference/file.md) - 文件操作工具
+- [重试工具参考](./reference/retry.md) - 重试机制
 
-### 📚 核心文档
+### 其他文档
+- [架构概览](./architecture.md) - SDK 架构说明
+- [TypeScript 支持](./typescript.md) - TypeScript 使用指南
+- [浏览器兼容性](./browser.md) - 浏览器环境说明
+- [测试指南](./testing.md) - 测试相关说明
+- [故障排查](./troubleshooting.md) - 常见问题解决
 
-- **[架构设计](./architecture.md)** - SDK 内部架构和模块划分
-- **[API 参考](./api/)** - 完整的 API 文档
-  - [Client API](./api/client.md) - 客户端接口
-  - [Wallet API](./api/wallet.md) - 钱包功能
-  - [Services API](./api/services.md) - 业务服务（Token/Staking/Market/Governance/Resource）
+## 🔧 开发文档
 
-### 🎯 使用指南
+> ⚠️ **注意**：以下文档位于 `_dev/` 目录，仅供开发使用，不会发布到 npm。
 
-- **[业务指南](./guides/)** - 按业务场景组织的使用指南
-  - [Token 指南](./guides/token.md) - 转账、批量转账、铸造、销毁
-  - [Staking 指南](./guides/staking.md) - 质押、委托、奖励领取
-  - [Market 指南](./guides/market.md) - AMM、流动性、托管、归属
-  - [Governance 指南](./guides/governance.md) - 提案、投票、参数更新
-  - [Resource 指南](./guides/resource.md) - 合约/模型/静态资源部署
+### 发布相关
+- [发布指南](../_dev/publishing/publishing.md) - 详细的发布流程
+- [快速发布指南](../_dev/publishing/publishing-quick-start.md) - 快速参考
+- [发布检查清单](../_dev/publishing/checklist.md) - 详细检查清单
+- [版本历史](../_dev/publishing/version-history.md) - 版本变更记录
 
-### 🔧 参考文档
+### 开发环境
+- [Node.js 升级指南](../_dev/development/setup/node-upgrade-guide.md) - Node.js 版本管理
+- [升级到 Node.js 22](../_dev/development/setup/upgrade-node-to-22.md) - 快速升级指南
 
-- **[工具参考](./reference/)** - 底层工具和最佳实践
-  - [重试机制](./reference/retry.md) - 请求重试策略
-  - [批量操作](./reference/batch.md) - 批量查询和操作
-  - [大文件处理](./reference/file.md) - 大文件上传和处理
-  - [浏览器兼容性](./browser.md) - 浏览器环境使用指南
-  - [TypeScript 支持](./typescript.md) - TypeScript 类型和集成
+### 故障排查
+- [npm 修复指南](../_dev/development/troubleshooting/fix-npm.md) - npm 问题解决
 
-### 🧪 测试与故障排查
+## 📋 文档说明
 
-- **[测试指南](./testing.md)** - 单元测试和集成测试
-- **[故障排查](./troubleshooting.md)** - 常见问题和解决方案
+### 用户文档 vs 开发文档
 
-### 📋 其他
+- **用户文档**（`docs/` 目录）：
+  - 面向 SDK 使用者
+  - 包含 API 文档、使用指南、示例代码
+  - 会发布到 npm（如果配置允许）
 
-- **[变更日志](./changelog.md)** - SDK 版本变更记录
-- **[迁移指南](./migration.md)** - 版本迁移说明
+- **开发文档**（`_dev/` 目录）：
+  - 面向项目开发者
+  - 包含发布流程、版本管理、开发环境设置
+  - **不会发布到 npm**（已在 `.npmignore` 中排除）
+  - **会提交到 Git**（团队协作需要）
 
----
+### 文档位置
 
-## 🔗 关联文档
+```
+项目根目录/
+├── docs/              # 用户文档（可能发布）
+│   ├── getting-started.md
+│   ├── guides/
+│   ├── api/
+│   └── ...
+└── _dev/              # 开发文档（不发布）
+    ├── publishing/    # 发布相关
+    ├── development/   # 开发相关
+    └── ...
+```
 
-### WES 主项目文档
+## 🔗 相关链接
 
-> 💡 **重要**：本 SDK 文档聚焦"如何在 JavaScript/TypeScript 中使用 WES"，系统级概念（共识、ISPC、EUTXO 等）请参考 WES 主项目文档。
-
-- **[WES 项目总览](https://github.com/weisyn/weisyn/blob/main/docs/overview.md)** - WES 核心概念和定位
-- **[WES 系统架构](https://github.com/weisyn/weisyn/blob/main/docs/system/architecture/README.md)** - 完整的系统架构设计
-- **[JSON-RPC API 参考](https://github.com/weisyn/weisyn/blob/main/docs/reference/api.md)** - 底层 API 接口文档
-- **[智能合约平台](https://github.com/weisyn/weisyn/blob/main/docs/system/platforms/contracts/README.md)** - 智能合约开发指南
-- **[AI 模型平台](https://github.com/weisyn/weisyn/blob/main/docs/system/platforms/models/README.md)** - AI 模型部署和推理指南
-
-### 其他 SDK
-
-- **[Go SDK 文档](../client-sdk-go.git/docs/README.md)** - Go 语言版本 SDK
-- **[能力对比](./archive/CAPABILITY_COMPARISON.md)** - Go/JS SDK 能力对比（已归档）
-
----
-
-## 📖 文档阅读建议
-
-### 新手入门路径
-
-1. **了解 WES** → [WES 项目总览](https://github.com/weisyn/weisyn/blob/main/docs/overview.md)
-2. **快速上手** → [快速开始](./getting-started.md)
-3. **理解概念** → [概述](./overview.md)
-4. **实际开发** → [业务指南](./guides/)
-
-### 进阶开发路径
-
-1. **深入架构** → [架构设计](./architecture.md)
-2. **API 参考** → [API 文档](./api/)
-3. **最佳实践** → [参考文档](./reference/)
-4. **问题排查** → [故障排查](./troubleshooting.md)
-
----
-
-## 📝 文档说明
-
-### 文档定位
-
-本 SDK 文档的定位是：
-
-- ✅ **语言绑定层**：将 WES 系统概念映射到 JavaScript/TypeScript API
-- ✅ **开发者视角**：聚焦"如何用代码实现业务需求"
-- ✅ **工程实践**：提供最佳实践和常见问题解决方案
-
-### 文档不包含
-
-- ❌ **系统架构详解**：请参考 WES 主项目文档
-- ❌ **协议层设计**：请参考 WES 主项目文档
-- ❌ **节点部署运维**：请参考 WES 主项目文档
-
----
-
-**最后更新**: 2025-11-17
-
+- [GitHub 仓库](https://github.com/weisyn/client-sdk-js)
+- [npm 包](https://www.npmjs.com/package/@weisyn/client-sdk-js)
+- [问题反馈](https://github.com/weisyn/client-sdk-js/issues)

@@ -3,7 +3,7 @@
  */
 
 import { IClient } from './client';
-import { ClientConfig, JSONRPCRequest, JSONRPCResponse, EventFilter, EventSubscription, Event, SendTxResult, SubscribeParams, SubscriptionType } from './types';
+import { ClientConfig, JSONRPCRequest, EventSubscription, Event, SendTxResult, SubscribeParams } from './types';
 import { bytesToHex, hexToBytes } from '../utils/hex';
 
 // 检测运行环境并选择合适的 WebSocket 实现
@@ -61,9 +61,9 @@ export class WebSocketClient implements IClient {
             this.handleMessage(event.data);
           });
 
-          this.ws.addEventListener('error', (error: Event) => {
+          this.ws.addEventListener('error', (evt: globalThis.Event) => {
             if (this.config.debug) {
-              console.error('[WebSocketClient] Error:', error);
+              console.error('[WebSocketClient] Error:', evt);
             }
             reject(new Error('WebSocket connection error'));
           });
@@ -73,7 +73,7 @@ export class WebSocketClient implements IClient {
               console.log('[WebSocketClient] Closed');
             }
             // 清理所有待处理的请求
-            for (const [id, { reject }] of this.pendingRequests) {
+            for (const [, { reject }] of this.pendingRequests) {
               reject(new Error('WebSocket connection closed'));
             }
             this.pendingRequests.clear();
@@ -103,7 +103,7 @@ export class WebSocketClient implements IClient {
               console.log('[WebSocketClient] Closed');
             }
             // 清理所有待处理的请求
-            for (const [id, { reject }] of this.pendingRequests) {
+            for (const [, { reject }] of this.pendingRequests) {
               reject(new Error('WebSocket connection closed'));
             }
             this.pendingRequests.clear();
@@ -129,7 +129,7 @@ export class WebSocketClient implements IClient {
         const eventData = params.result;
 
         // 查找对应的订阅
-        for (const [id, subscription] of this.subscriptions.entries()) {
+        for (const [, subscription] of this.subscriptions.entries()) {
           if (subscription.id === subscriptionId) {
             // 触发订阅的回调
             // 注意：这里需要访问 subscription 的内部回调列表

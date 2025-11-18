@@ -104,8 +104,8 @@ export interface CreateVestingRequest {
   from: Uint8Array;
   /** 受益人地址（20字节） */
   to: Uint8Array;
-  /** 代币ID */
-  tokenId: Uint8Array;
+  /** 代币ID（null 表示原生币） */
+  tokenId: Uint8Array | null;
   /** 总金额 */
   amount: bigint | number;
   /** 开始时间（Unix时间戳） */
@@ -160,8 +160,8 @@ export interface CreateEscrowRequest {
   buyer: Uint8Array;
   /** 卖方地址（20字节） */
   seller: Uint8Array;
-  /** 代币ID */
-  tokenId: Uint8Array;
+  /** 代币ID（null 表示原生币） */
+  tokenId: Uint8Array | null;
   /** 托管金额 */
   amount: bigint | number;
   /** 过期时间（Unix时间戳） */

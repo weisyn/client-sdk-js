@@ -2,7 +2,7 @@
  * HTTP 客户端实现
  */
 
-import axios, { AxiosInstance, AxiosRequestConfig } from 'axios';
+import axios, { AxiosInstance } from 'axios';
 import { IClient } from './client';
 import { ClientConfig, JSONRPCRequest, JSONRPCResponse, EventFilter, EventSubscription, SendTxResult } from './types';
 import { withRetry, RetryConfig } from '../utils/retry';
@@ -122,7 +122,7 @@ export class HTTPClient implements IClient {
   /**
    * 订阅事件（HTTP 不支持，抛出错误）
    */
-  async subscribe(filter: EventFilter): Promise<EventSubscription> {
+  async subscribe(_filter: EventFilter): Promise<EventSubscription> {
     throw new Error('Event subscription is not supported in HTTP client. Use WebSocket client instead.');
   }
 

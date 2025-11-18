@@ -24,6 +24,8 @@ describe('MarketService', () => {
         marketService.swapAMM({
           from: invalidAddress,
           ammContractAddr: new Uint8Array(32),
+          tokenIn: null,
+          tokenOut: null,
           amountIn: 1000,
           amountOutMin: 900,
         })
@@ -35,6 +37,8 @@ describe('MarketService', () => {
         marketService.swapAMM({
           from: wallet.address,
           ammContractAddr: new Uint8Array(31), // 错误长度
+          tokenIn: null,
+          tokenOut: null,
           amountIn: 1000,
           amountOutMin: 900,
         })
@@ -46,6 +50,8 @@ describe('MarketService', () => {
         marketService.swapAMM({
           from: wallet.address,
           ammContractAddr: new Uint8Array(32),
+          tokenIn: null,
+          tokenOut: null,
           amountIn: 0,
           amountOutMin: 900,
         })
@@ -54,26 +60,15 @@ describe('MarketService', () => {
   });
 
   describe('createEscrow', () => {
-    it('should validate from address length', async () => {
-      const invalidAddress = new Uint8Array(19);
-      await expect(
-        marketService.createEscrow({
-          from: invalidAddress,
-          buyer: wallet.address,
-          seller: wallet.address,
-          amount: 1000,
-        })
-      ).rejects.toThrow('From address must be 20 bytes');
-    });
-
     it('should validate buyer address length', async () => {
       const invalidAddress = new Uint8Array(19);
       await expect(
         marketService.createEscrow({
-          from: wallet.address,
           buyer: invalidAddress,
           seller: wallet.address,
+          tokenId: new Uint8Array(32),
           amount: 1000,
+          expiry: BigInt(Date.now() + 3600000),
         })
       ).rejects.toThrow('Buyer address must be 20 bytes');
     });
@@ -82,10 +77,11 @@ describe('MarketService', () => {
       const invalidAddress = new Uint8Array(19);
       await expect(
         marketService.createEscrow({
-          from: wallet.address,
           buyer: wallet.address,
           seller: invalidAddress,
+          tokenId: new Uint8Array(32),
           amount: 1000,
+          expiry: BigInt(Date.now() + 3600000),
         })
       ).rejects.toThrow('Seller address must be 20 bytes');
     });
@@ -98,8 +94,8 @@ describe('MarketService', () => {
         marketService.createVesting({
           from: invalidAddress,
           to: wallet.address,
+          tokenId: new Uint8Array(32),
           amount: 1000,
-          tokenID: null,
           startTime: BigInt(1000),
           duration: BigInt(10000),
         })
@@ -112,8 +108,8 @@ describe('MarketService', () => {
         marketService.createVesting({
           from: wallet.address,
           to: invalidAddress,
+          tokenId: new Uint8Array(32),
           amount: 1000,
-          tokenID: null,
           startTime: BigInt(1000),
           duration: BigInt(10000),
         })

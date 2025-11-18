@@ -10,6 +10,10 @@ tsconfig.json
 jest.config.js
 rollup.config.js
 
+# Development directory (contains dev docs, version history, etc.)
+_dev/
+.dev/
+
 # Documentation (keep README.md and LICENSE)
 docs/
 PROJECT_STRUCTURE.md

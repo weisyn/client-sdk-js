@@ -11,7 +11,6 @@ import { bytesToHex } from '../../utils/hex';
 import { addressToHex, addressBytesToBase58 } from '../../utils/address';
 import {
   queryUTXO,
-  UTXO,
 } from '../../utils/tx_utils';
 
 /**

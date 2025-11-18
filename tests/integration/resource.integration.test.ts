@@ -5,7 +5,7 @@
  */
 
 import { ResourceService } from '../../src/services/resource/service';
-import { Client } from '../../src/client/client';
+import { IClient } from '../../src/client/client';
 import { Wallet } from '../../src/wallet/wallet';
 import {
   setupTestClient,
@@ -13,11 +13,10 @@ import {
   createTestWallet,
   fundTestAccount,
   ensureNodeRunning,
-  waitForTransactionConfirmation,
 } from './setup';
 
 describe('Resource Service Integration Tests', () => {
-  let client: Client;
+  let client: IClient;
   let wallet: Wallet;
   let resourceService: ResourceService;
 
@@ -51,7 +50,7 @@ describe('Resource Service Integration Tests', () => {
       expect(result).toBeDefined();
       expect(result.txHash).toBeDefined();
       expect(result.success).toBe(true);
-      expect(result.resourceId).toBeDefined();
+      expect(result.contentHash).toBeDefined();
     }, 60000);
   });
 });

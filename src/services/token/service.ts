@@ -117,7 +117,7 @@ export class TokenService {
       throw new Error('From address must be 20 bytes');
     }
     if (!request.tokenId || request.tokenId.length !== 32) {
-      throw new Error('TokenID is required and must be 32 bytes for batch transfer');
+      throw new Error('TokenID is required and must be 32 bytes');
     }
 
     // 验证所有转账的接收方地址
@@ -204,7 +204,7 @@ export class TokenService {
     const mintParams: any = {
       to: addressToHex(request.to),
       amount: amount.toString(),
-      tokenID: bytesToHex(request.tokenID),
+      tokenID: bytesToHex(request.tokenId),
       contractAddr: addressToHex(request.contractAddr),
     };
 
@@ -324,7 +324,7 @@ export class TokenService {
    * 
    * **注意**：不需要 Wallet
    */
-  async getBalance(address: Uint8Array, tokenId: Uint8Array | null): Promise<bigint> {
+  async getBalance(address: Uint8Array, _tokenId: Uint8Array | null): Promise<bigint> {
     // 1. 验证地址
     if (address.length !== 20) {
       throw new Error('Address must be 20 bytes');
@@ -333,6 +333,7 @@ export class TokenService {
     // 2. 构建查询参数
     const addressHex = addressToHex(address);
     const params = [addressHex, 'latest']; // blockParameter: "latest" | "pending" | blockNumber
+    // TODO: tokenId 参数预留，未来可能用于查询特定代币余额
 
     // 3. 调用 JSON-RPC 方法
     const result = await this.client.call('wes_getBalance', params);

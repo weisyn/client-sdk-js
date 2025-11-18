@@ -3,7 +3,6 @@
  */
 
 import { Wallet } from '../src/wallet/wallet';
-import { bytesToHex } from '../src/utils/hex';
 
 describe('Wallet', () => {
   describe('create', () => {
@@ -97,7 +96,8 @@ describe('Wallet', () => {
       const privateKey = wallet.exportPrivateKey();
       
       expect(privateKey).toBeDefined();
-      expect(privateKey.length).toBe(64); // 32 bytes = 64 hex chars
+      expect(privateKey.length).toBe(66); // 32 bytes = 64 hex chars + "0x" prefix
+      expect(privateKey.startsWith('0x')).toBe(true);
     });
   });
 

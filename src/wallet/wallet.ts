@@ -140,7 +140,16 @@ export class Wallet implements IWallet {
   private async hashMessage(message: Uint8Array): Promise<Uint8Array> {
     // 在浏览器环境使用 Web Crypto API
     if (typeof window !== 'undefined' && window.crypto && window.crypto.subtle) {
-      const hashBuffer = await crypto.subtle.digest('SHA-256', message);
+      // 确保 message 是 ArrayBuffer，兼容 Web Crypto API
+      let buffer: ArrayBuffer;
+      if (message.buffer instanceof SharedArrayBuffer) {
+        // SharedArrayBuffer 需要复制到新的 ArrayBuffer
+        buffer = new ArrayBuffer(message.byteLength);
+        new Uint8Array(buffer).set(new Uint8Array(message.buffer, message.byteOffset, message.byteLength));
+      } else {
+        buffer = message.buffer.slice(message.byteOffset, message.byteOffset + message.byteLength);
+      }
+      const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
       return new Uint8Array(hashBuffer);
     }
     

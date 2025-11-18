@@ -5,7 +5,7 @@
  */
 
 import { StakingService } from '../../src/services/staking/service';
-import { Client } from '../../src/client/client';
+import { IClient } from '../../src/client/client';
 import { Wallet } from '../../src/wallet/wallet';
 import {
   setupTestClient,
@@ -13,11 +13,10 @@ import {
   createTestWallet,
   fundTestAccount,
   ensureNodeRunning,
-  waitForTransactionConfirmation,
 } from './setup';
 
 describe('Staking Service Integration Tests', () => {
-  let client: Client;
+  let client: IClient;
   let wallet: Wallet;
   let stakingService: StakingService;
   let validatorWallet: Wallet;

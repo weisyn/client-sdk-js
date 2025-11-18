@@ -9,7 +9,6 @@
 import { IClient } from '../../client/client';
 import { Wallet } from '../../wallet/wallet';
 import { bytesToHex, hexToBytes } from '../../utils/hex';
-import { addressToHex } from '../../utils/address';
 import {
   DeployStaticResourceRequest,
   DeployStaticResourceResult,

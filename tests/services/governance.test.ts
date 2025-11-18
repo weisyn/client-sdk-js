@@ -95,8 +95,8 @@ describe('GovernanceService', () => {
       await expect(
         governanceService.updateParam({
           proposer: invalidAddress,
-          key: 'test_key',
-          value: 'test_value',
+          paramKey: 'test_key',
+          paramValue: 'test_value',
         })
       ).rejects.toThrow('Proposer address must be 20 bytes');
     });
@@ -105,8 +105,8 @@ describe('GovernanceService', () => {
       await expect(
         governanceService.updateParam({
           proposer: wallet.address,
-          key: '',
-          value: 'test_value',
+          paramKey: '',
+          paramValue: 'test_value',
         })
       ).rejects.toThrow('Key is required');
     });

@@ -2,7 +2,7 @@
  * 客户端配置管理
  */
 
-import { ClientConfig, Protocol } from './types';
+import { ClientConfig } from './types';
 
 /**
  * 默认客户端配置

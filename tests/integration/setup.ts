@@ -4,7 +4,7 @@
  * 提供与真实节点连接的测试工具函数
  */
 
-import { Client, ClientConfig } from '../../src/client/client';
+import { ClientConfig, createClient, IClient } from '../../src/client/client';
 import { Wallet } from '../../src/wallet/wallet';
 
 /**
@@ -51,7 +51,7 @@ export function defaultTestConfig(): Required<TestConfig> {
  * @param config 测试配置
  * @returns 客户端实例
  */
-export async function setupTestClient(config?: TestConfig): Promise<Client> {
+export async function setupTestClient(config?: TestConfig): Promise<IClient> {
   const cfg = { ...defaultTestConfig(), ...config };
   
   const clientConfig: ClientConfig = {
@@ -61,7 +61,7 @@ export async function setupTestClient(config?: TestConfig): Promise<Client> {
     debug: false,
   };
 
-  const client = new Client(clientConfig);
+  const client = createClient(clientConfig);
 
   // 验证节点是否运行
   try {
@@ -81,7 +81,7 @@ export async function setupTestClient(config?: TestConfig): Promise<Client> {
  * 
  * @param client 客户端实例
  */
-export async function teardownTestClient(client: Client): Promise<void> {
+export async function teardownTestClient(client: IClient): Promise<void> {
   if (client) {
     await client.close();
   }
@@ -114,10 +114,11 @@ export async function createTestWalletFromPrivateKey(privateKeyHex: string): Pro
  * @param amount 金额（可选，实际通过挖矿获得）
  */
 export async function fundTestAccount(
-  client: Client,
+  client: IClient,
   address: Uint8Array,
-  amount?: bigint
+  _amount?: bigint
 ): Promise<void> {
+  // TODO: 实现账户充值功能
   // 将地址转换为 Base58 格式
   const { addressBytesToBase58 } = await import('../../src/utils/address');
   const addressBase58 = addressBytesToBase58(address);
@@ -167,7 +168,7 @@ export async function fundTestAccount(
  * @returns 余额
  */
 export async function getTestAccountBalance(
-  client: Client,
+  client: IClient,
   address: Uint8Array,
   tokenId: Uint8Array | null = null
 ): Promise<bigint> {
@@ -225,7 +226,7 @@ export async function ensureNodeRunning(config?: TestConfig): Promise<void> {
     debug: false,
   };
 
-  const client = new Client(clientConfig);
+  const client = createClient(clientConfig);
   
   try {
     await client.call('wes_blockNumber', []);
@@ -249,7 +250,7 @@ export async function ensureNodeRunning(config?: TestConfig): Promise<void> {
  * @returns 是否确认成功
  */
 export async function waitForTransactionConfirmation(
-  client: Client,
+  client: IClient,
   txHash: string,
   timeout: number = TRANSACTION_CONFIRM_TIMEOUT
 ): Promise<boolean> {

@@ -69,7 +69,7 @@ export class MockClient implements IClient {
   /**
    * 订阅事件（Mock 不支持）
    */
-  async subscribe(filter: any): Promise<any> {
+  async subscribe(_filter: any): Promise<any> {
     throw new Error('Mock client does not support subscription');
   }
 

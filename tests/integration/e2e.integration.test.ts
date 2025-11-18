@@ -8,7 +8,7 @@
 import { TokenService } from '../../src/services/token/service';
 import { StakingService } from '../../src/services/staking/service';
 import { MarketService } from '../../src/services/market/service';
-import { Client } from '../../src/client/client';
+import { IClient } from '../../src/client/client';
 import { Wallet } from '../../src/wallet/wallet';
 import {
   setupTestClient,
@@ -21,7 +21,7 @@ import {
 } from './setup';
 
 describe('End-to-End Integration Tests', () => {
-  let client: Client;
+  let client: IClient;
   let wallet: Wallet;
   let tokenService: TokenService;
   let stakingService: StakingService;
@@ -98,9 +98,12 @@ describe('End-to-End Integration Tests', () => {
       // 4. 领取奖励（如果有奖励）
       // 注意：实际奖励可能需要等待区块生成
       try {
+        // stakeId 是 string，需要转换为 Uint8Array
+        const { hexToBytes } = await import('../../src/utils/hex');
+        const stakeIdBytes = hexToBytes(stakeResult.stakeId!);
         const claimResult = await stakingService.claimReward({
           from: wallet.address,
-          stakeId: stakeResult.stakeId!,
+          stakeId: stakeIdBytes,
         }, wallet);
 
         if (claimResult.success) {
@@ -133,10 +136,11 @@ describe('End-to-End Integration Tests', () => {
       // 2. 创建托管
       const escrowAmount = BigInt(500000);
       const escrowResult = await marketService.createEscrow({
-        from: wallet.address,
+        buyer: wallet.address,
         seller: seller.address,
-        amount: escrowAmount,
         tokenId: null,
+        amount: escrowAmount,
+        expiry: BigInt(Date.now() + 3600000), // 1小时后过期
       }, wallet);
 
       expect(escrowResult.success).toBe(true);
@@ -148,6 +152,7 @@ describe('End-to-End Integration Tests', () => {
       const sellerMarketService = new MarketService(client, seller);
       const releaseResult = await sellerMarketService.releaseEscrow({
         from: seller.address,
+        sellerAddress: seller.address,
         escrowId: escrowResult.escrowId!,
       }, seller);
 

@@ -8,8 +8,7 @@
 
 import { IClient } from '../../client/client';
 import { Wallet } from '../../wallet/wallet';
-import { bytesToHex, hexToBytes } from '../../utils/hex';
-import { addressToHex } from '../../utils/address';
+import { bytesToHex } from '../../utils/hex';
 import { computeSignatureHashFromDraft, finalizeTransactionFromDraft } from '../../utils/tx_utils';
 import { buildProposeDraft, buildVoteDraft, buildUpdateParamDraft } from './tx_builder';
 import {
@@ -208,7 +207,12 @@ export class GovernanceService {
       throw new Error('Title is required');
     }
 
-    // 3. 验证投票期限
+    // 3. 验证描述
+    if (!request.description || request.description.trim() === '') {
+      throw new Error('Description is required');
+    }
+
+    // 4. 验证投票期限
     const votingPeriod = typeof request.votingPeriod === 'bigint' ? request.votingPeriod : BigInt(request.votingPeriod);
     if (votingPeriod <= BigInt(0)) {
       throw new Error('Voting period must be greater than 0');
@@ -344,13 +348,13 @@ export class GovernanceService {
     }
 
     // 2. 验证提案ID
-    if (request.proposalId.length === 0) {
-      throw new Error('Proposal ID is required');
+    if (request.proposalId.length !== 32) {
+      throw new Error('Proposal ID must be 32 bytes');
     }
 
     // 3. 验证投票选择
     if (request.choice < -1 || request.choice > 1) {
-      throw new Error('Choice must be -1 (abstain), 0 (against), or 1 (for)');
+      throw new Error('Choice must be 1 (支持), 0 (反对), or -1 (弃权)');
     }
 
     // 4. 验证投票权重
@@ -462,7 +466,7 @@ export class GovernanceService {
 
     // 2. 验证参数键
     if (!request.paramKey || request.paramKey.trim() === '') {
-      throw new Error('Param key is required');
+      throw new Error('Key is required');
     }
 
     // 3. 验证参数值

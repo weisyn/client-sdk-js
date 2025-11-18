@@ -5,8 +5,9 @@
  */
 
 import { GovernanceService } from '../../src/services/governance/service';
-import { Client } from '../../src/client/client';
+import { IClient } from '../../src/client/client';
 import { Wallet } from '../../src/wallet/wallet';
+import { hexToBytes } from '../../src/utils/hex';
 import {
   setupTestClient,
   teardownTestClient,
@@ -17,7 +18,7 @@ import {
 } from './setup';
 
 describe('Governance Service Integration Tests', () => {
-  let client: Client;
+  let client: IClient;
   let wallet: Wallet;
   let governanceService: GovernanceService;
 
@@ -38,16 +39,11 @@ describe('Governance Service Integration Tests', () => {
 
   describe('Propose', () => {
     it('should create proposal successfully', async () => {
-      const proposalData = {
-        title: 'Test Proposal',
-        description: 'This is a test proposal',
-        action: 'update_param',
-        params: { key: 'test_key', value: 'test_value' },
-      };
-
       const result = await governanceService.propose({
         proposer: wallet.address,
-        proposalData,
+        title: 'Test Proposal',
+        description: 'This is a test proposal',
+        votingPeriod: BigInt(1000),
       }, wallet);
 
       expect(result).toBeDefined();
@@ -60,27 +56,23 @@ describe('Governance Service Integration Tests', () => {
   describe('Vote', () => {
     it('should vote on proposal successfully', async () => {
       // 先创建一个提案
-      const proposalData = {
-        title: 'Test Proposal for Voting',
-        description: 'This is a test proposal for voting',
-        action: 'update_param',
-        params: { key: 'test_key', value: 'test_value' },
-      };
-
       const proposeResult = await governanceService.propose({
         proposer: wallet.address,
-        proposalData,
+        title: 'Test Proposal for Voting',
+        description: 'This is a test proposal for voting',
+        votingPeriod: BigInt(1000),
       }, wallet);
 
       // 等待提案确认
       await waitForTransactionConfirmation(client, proposeResult.txHash);
 
-      // 投票
+      // 投票 - 将 proposalId 从 string 转换为 Uint8Array
+      const proposalIdBytes = hexToBytes(proposeResult.proposalId!);
       const result = await governanceService.vote({
         voter: wallet.address,
-        proposalId: proposeResult.proposalId!,
+        proposalId: proposalIdBytes,
         choice: 1, // 支持
-        weight: BigInt(1),
+        voteWeight: BigInt(1),
       }, wallet);
 
       expect(result).toBeDefined();

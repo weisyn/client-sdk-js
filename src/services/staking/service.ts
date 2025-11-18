@@ -9,7 +9,6 @@
 import { IClient } from '../../client/client';
 import { Wallet } from '../../wallet/wallet';
 import { bytesToHex, hexToBytes } from '../../utils/hex';
-import { addressToHex } from '../../utils/address';
 import {
   computeSignatureHashFromDraft,
   finalizeTransactionFromDraft,
@@ -356,8 +355,8 @@ export class StakingService {
     }
 
     // 2. 验证质押ID
-    if (request.stakeId.length === 0) {
-      throw new Error('Stake ID is required');
+    if (request.stakeId.length !== 32) {
+      throw new Error('Stake ID must be 32 bytes');
     }
   }
 
@@ -738,11 +737,12 @@ export class StakingService {
     this.validateSlashRequest(request);
 
     // 2. 获取 Wallet（罚没可能需要多方签名）
-    const w = this.getWallet(wallet);
-
-    // 3. 当前实现：架构预留，业务未定义
+    // 当前实现：架构预留，业务未定义
     // Slash 需要治理规则 / Slash 合约支持，属于后续阶段能力
     // 当前返回明确的错误，提示需要治理规则 / Slash 合约
+    // TODO: 实现 Slash 功能时需要使用 wallet
+    void this.getWallet(wallet);
+
     throw new Error('Slash not implemented: requires governance rules or slash contract (architecture reserved, business logic undefined)');
   }
 

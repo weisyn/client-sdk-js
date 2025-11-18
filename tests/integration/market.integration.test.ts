@@ -5,7 +5,7 @@
  */
 
 import { MarketService } from '../../src/services/market/service';
-import { Client } from '../../src/client/client';
+import { IClient } from '../../src/client/client';
 import { Wallet } from '../../src/wallet/wallet';
 import {
   setupTestClient,
@@ -13,11 +13,10 @@ import {
   createTestWallet,
   fundTestAccount,
   ensureNodeRunning,
-  waitForTransactionConfirmation,
 } from './setup';
 
 describe('Market Service Integration Tests', () => {
-  let client: Client;
+  let client: IClient;
   let wallet: Wallet;
   let marketService: MarketService;
 
@@ -42,10 +41,11 @@ describe('Market Service Integration Tests', () => {
       const amount = BigInt(1000000);
 
       const result = await marketService.createEscrow({
-        from: wallet.address,
+        buyer: wallet.address,
         seller: seller.address,
-        amount,
         tokenId: null,
+        amount,
+        expiry: BigInt(Date.now() + 3600000), // 1小时后过期
       }, wallet);
 
       expect(result).toBeDefined();
@@ -63,10 +63,11 @@ describe('Market Service Integration Tests', () => {
 
       const result = await marketService.createVesting({
         from: wallet.address,
-        recipient: recipient.address,
-        amount,
+        to: recipient.address,
         tokenId: null,
-        unlockTime,
+        amount,
+        startTime: BigInt(unlockTime),
+        duration: BigInt(3600), // 1小时
       }, wallet);
 
       expect(result).toBeDefined();

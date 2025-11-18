@@ -110,7 +110,17 @@ function sha256(data: Uint8Array): Uint8Array {
 async function sha256Async(data: Uint8Array): Promise<Uint8Array> {
   // 浏览器环境：使用 Web Crypto API
   if (typeof window !== 'undefined' && window.crypto && window.crypto.subtle) {
-    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+    // 确保 data 是 ArrayBuffer，兼容 Web Crypto API
+    // 如果 buffer 是 SharedArrayBuffer，需要转换为 ArrayBuffer
+    let buffer: ArrayBuffer;
+    if (data.buffer instanceof SharedArrayBuffer) {
+      // SharedArrayBuffer 需要复制到新的 ArrayBuffer
+      buffer = new ArrayBuffer(data.byteLength);
+      new Uint8Array(buffer).set(new Uint8Array(data.buffer, data.byteOffset, data.byteLength));
+    } else {
+      buffer = data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength);
+    }
+    const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
     return new Uint8Array(hashBuffer);
   }
   
@@ -121,22 +131,6 @@ async function sha256Async(data: Uint8Array): Promise<Uint8Array> {
   }
   
   throw new Error('SHA256 is not supported in this environment');
-}
-
-/**
- * 双重 SHA256（同步版本）
- */
-function doubleSha256(data: Uint8Array): Uint8Array {
-  const hash1 = sha256(data);
-  return sha256(hash1);
-}
-
-/**
- * 双重 SHA256（异步版本，支持浏览器）
- */
-async function doubleSha256Async(data: Uint8Array): Promise<Uint8Array> {
-  const hash1 = await sha256Async(data);
-  return sha256Async(hash1);
 }
 
 /**

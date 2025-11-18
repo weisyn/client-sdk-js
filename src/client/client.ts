@@ -2,7 +2,7 @@
  * Client 接口定义
  */
 
-import { ClientConfig, Protocol, EventFilter, EventSubscription, SendTxResult, SubscribeParams } from './types';
+import { ClientConfig, Protocol, EventSubscription, SendTxResult, SubscribeParams } from './types';
 import { HTTPClient } from './http';
 import { WebSocketClient } from './websocket';
 
@@ -39,11 +39,6 @@ export interface IClient {
 }
 
 /**
- * Client 类型别名（导出为 Client）
- */
-export type Client = IClient;
-
-/**
  * 客户端配置
  */
 export type { ClientConfig };
@@ -71,6 +66,7 @@ export function createClient(config: ClientConfig): IClient {
 
 /**
  * Client 类（兼容性导出，支持 new Client(config) 用法）
+ * 同时可以作为类型使用（Client 类实现了 IClient 接口）
  */
 export class Client implements IClient {
   private impl: IClient;
@@ -95,4 +91,9 @@ export class Client implements IClient {
     return this.impl.close();
   }
 }
+
+/**
+ * IClient 接口已在上面通过 export interface IClient 导出
+ * 不需要再次导出
+ */
 

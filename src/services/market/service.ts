@@ -203,7 +203,7 @@ export class MarketService {
     // 3. 验证金额
     const amountIn = typeof request.amountIn === 'bigint' ? request.amountIn : BigInt(request.amountIn);
     if (amountIn <= BigInt(0)) {
-      throw new Error('Amount in must be greater than 0');
+      throw new Error('AmountIn must be greater than 0');
     }
     const amountOutMin = typeof request.amountOutMin === 'bigint' ? request.amountOutMin : BigInt(request.amountOutMin);
     if (amountOutMin <= BigInt(0)) {
@@ -542,7 +542,7 @@ export class MarketService {
       request.from,
       request.to,
       amount,
-      request.tokenId,
+      request.tokenId ?? new Uint8Array(0), // null 表示原生币，传递空数组
       startTime,
       duration
       // TODO: 支持 vestingContractAddr 参数
@@ -810,7 +810,7 @@ export class MarketService {
       request.buyer,
       request.seller,
       amount,
-      request.tokenId,
+      request.tokenId ?? new Uint8Array(0), // null 表示原生币，传递空数组
       expiry
       // TODO: 支持 escrowContractAddr 参数
     );

@@ -11,6 +11,11 @@ build/
 # TypeScript
 *.tsbuildinfo
 
+# Development directory (contains dev docs, version history, etc.)
+# Note: _dev/ should be committed to git for team collaboration
+# but excluded from npm publishing via .npmignore
+# _dev/
+
 # IDE
 .vscode/
 .idea/

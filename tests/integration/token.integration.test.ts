@@ -6,7 +6,7 @@
  */
 
 import { TokenService } from '../../src/services/token/service';
-import { Client } from '../../src/client/client';
+import { IClient } from '../../src/client/client';
 import { Wallet } from '../../src/wallet/wallet';
 import {
   setupTestClient,
@@ -19,7 +19,7 @@ import {
 } from './setup';
 
 describe('Token Service Integration Tests', () => {
-  let client: Client;
+  let client: IClient;
   let wallet: Wallet;
   let tokenService: TokenService;
 

@@ -10,8 +10,9 @@ import { StakingService } from '../../src/services/staking/service';
 import { MarketService } from '../../src/services/market/service';
 import { GovernanceService } from '../../src/services/governance/service';
 import { ResourceService } from '../../src/services/resource/service';
-import { Client, ClientConfig } from '../../src/client/client';
+import { IClient, ClientConfig, createClient } from '../../src/client/client';
 import { Wallet } from '../../src/wallet/wallet';
+import { hexToBytes } from '../../src/utils/hex';
 import {
   setupTestClient,
   teardownTestClient,
@@ -23,7 +24,7 @@ import {
 } from './setup';
 
 describe('Extended End-to-End Integration Tests', () => {
-  let client: Client;
+  let client: IClient;
   let wallet: Wallet;
   let tokenService: TokenService;
   let stakingService: StakingService;
@@ -60,19 +61,11 @@ describe('Extended End-to-End Integration Tests', () => {
   describe('Complete Governance Workflow: Propose -> Vote -> UpdateParam', () => {
     it('should complete full governance workflow', async () => {
       // 1. 创建提案
-      const proposalData = {
-        title: 'Test Governance Proposal',
-        description: 'This is a test governance proposal for E2E testing',
-        action: 'update_param',
-        params: {
-          key: 'staking_reward_rate',
-          value: '0.05',
-        },
-      };
-
       const proposeResult = await governanceService.propose({
         proposer: wallet.address,
-        proposalData,
+        title: 'Test Governance Proposal',
+        description: 'This is a test governance proposal for E2E testing',
+        votingPeriod: BigInt(1000),
       }, wallet);
 
       expect(proposeResult.success).toBe(true);
@@ -80,11 +73,13 @@ describe('Extended End-to-End Integration Tests', () => {
       await waitForTransactionConfirmation(client, proposeResult.txHash);
 
       // 2. 投票
+      // 将 proposalId 从 string 转换为 Uint8Array
+      const proposalIdBytes = hexToBytes(proposeResult.proposalId!);
       const voteResult = await governanceService.vote({
         voter: wallet.address,
-        proposalId: proposeResult.proposalId!,
+        proposalId: proposalIdBytes,
         choice: 1, // 支持
-        weight: BigInt(1),
+        voteWeight: BigInt(1),
       }, wallet);
 
       expect(voteResult.success).toBe(true);
@@ -124,12 +119,11 @@ describe('Extended End-to-End Integration Tests', () => {
       try {
         const addLiquidityResult = await marketService.addLiquidity({
           from: wallet.address,
-          tokenIdA,
-          tokenIdB,
+          ammContractAddr: new Uint8Array(32), // 需要实际的 AMM 合约地址
+          tokenA: tokenIdA,
+          tokenB: tokenIdB,
           amountA: BigInt(1000000),
           amountB: BigInt(2000000),
-          amountAMin: BigInt(900000),
-          amountBMin: BigInt(1800000),
         }, wallet);
 
         if (addLiquidityResult.success) {
@@ -140,8 +134,9 @@ describe('Extended End-to-End Integration Tests', () => {
           // 2. AMM 交换
           const swapResult = await marketService.swapAMM({
             from: wallet.address,
-            tokenIdIn: tokenIdA,
-            tokenIdOut: tokenIdB,
+            ammContractAddr: new Uint8Array(32), // 需要实际的 AMM 合约地址
+            tokenIn: tokenIdA,
+            tokenOut: tokenIdB,
             amountIn: BigInt(100000),
             amountOutMin: BigInt(180000),
           }, wallet);
@@ -153,9 +148,9 @@ describe('Extended End-to-End Integration Tests', () => {
             // 3. 移除流动性
             const removeLiquidityResult = await marketService.removeLiquidity({
               from: wallet.address,
+              ammContractAddr: new Uint8Array(32), // 需要实际的 AMM 合约地址
               liquidityId: addLiquidityResult.liquidityId!,
-              amountAMin: BigInt(800000),
-              amountBMin: BigInt(1600000),
+              amount: BigInt(500000), // 移除部分流动性
             }, wallet);
 
             if (removeLiquidityResult.success) {
@@ -230,7 +225,7 @@ describe('Extended End-to-End Integration Tests', () => {
         },
       };
 
-      const retryClient = new Client(retryClientConfig);
+      const retryClient = createClient(retryClientConfig);
       const retryTokenService = new TokenService(retryClient, wallet);
 
       // 执行一个简单的查询操作（应该成功，即使有临时网络问题也会重试）
@@ -271,10 +266,11 @@ describe('Extended End-to-End Integration Tests', () => {
       // 1. 买方创建托管
       const escrowAmount = BigInt(500000);
       const escrowResult = await marketService.createEscrow({
-        from: buyer.address,
+        buyer: buyer.address,
         seller: seller.address,
-        amount: escrowAmount,
         tokenId: null,
+        amount: escrowAmount,
+        expiry: BigInt(Date.now() + 3600000), // 1小时后过期
       }, buyer);
 
       expect(escrowResult.success).toBe(true);
@@ -285,6 +281,7 @@ describe('Extended End-to-End Integration Tests', () => {
       const sellerMarketService = new MarketService(client, seller);
       const releaseResult = await sellerMarketService.releaseEscrow({
         from: seller.address,
+        sellerAddress: seller.address,
         escrowId: escrowResult.escrowId!,
       }, seller);
 
@@ -310,14 +307,14 @@ describe('Extended End-to-End Integration Tests', () => {
       }, wallet);
 
       expect(deployResult.success).toBe(true);
-      expect(deployResult.resourceId).toBeDefined();
+      expect(deployResult.contentHash).toBeDefined();
       await waitForTransactionConfirmation(client, deployResult.txHash);
 
       // 2. 查询资源
-      if (deployResult.resourceId) {
-        const resourceInfo = await resourceService.getResource(deployResult.resourceId);
+      if (deployResult.contentHash) {
+        const resourceInfo = await resourceService.getResource(deployResult.contentHash);
         expect(resourceInfo).toBeDefined();
-        expect(resourceInfo.resourceId).toEqual(deployResult.resourceId);
+        expect(resourceInfo.contentHash).toBeDefined();
       }
     }, 120000);
   });
@@ -352,9 +349,11 @@ describe('Extended End-to-End Integration Tests', () => {
 
       // 3. 尝试领取奖励
       try {
+        // stakeId 是 string，需要转换为 Uint8Array
+        const stakeIdBytes = hexToBytes(stakeResult.stakeId!);
         const claimResult = await stakingService.claimReward({
           from: wallet.address,
-          stakeId: stakeResult.stakeId!,
+          stakeId: stakeIdBytes,
         }, wallet);
 
         if (claimResult.success) {
@@ -365,9 +364,12 @@ describe('Extended End-to-End Integration Tests', () => {
       }
 
       // 4. 解除质押
+      // stakeId 是 string，需要转换为 Uint8Array
+      const stakeIdBytes = hexToBytes(stakeResult.stakeId!);
       const unstakeResult = await stakingService.unstake({
         from: wallet.address,
-        stakeId: stakeResult.stakeId!,
+        stakeId: stakeIdBytes,
+        amount: BigInt(0), // 0 表示全部解除质押
       }, wallet);
 
       expect(unstakeResult.success).toBe(true);

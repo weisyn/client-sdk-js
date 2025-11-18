@@ -9,7 +9,7 @@
 import { IClient } from '../../client/client';
 import { bytesToHex, hexToBytes } from '../../utils/hex';
 import { addressToHex } from '../../utils/address';
-import { UTXO, buildTransactionDraft } from './tx_builder';
+import { UTXO } from './tx_builder';
 
 /**
  * 构建批量转账交易
