@@ -2,7 +2,9 @@
  * Client 接口定义
  */
 
-import { ClientConfig, Protocol, EventFilter, EventSubscription, SendTxResult } from './types';
+import { ClientConfig, Protocol, EventFilter, EventSubscription, SendTxResult, SubscribeParams } from './types';
+import { HTTPClient } from './http';
+import { WebSocketClient } from './websocket';
 
 /**
  * WES 客户端接口
@@ -25,10 +27,10 @@ export interface IClient {
 
   /**
    * 订阅事件（WebSocket 支持）
-   * @param filter 事件过滤器
+   * @param params 订阅参数：订阅类型字符串（如 'newHeads'）或事件过滤器
    * @returns 事件订阅对象
    */
-  subscribe(filter: EventFilter): Promise<EventSubscription>;
+  subscribe(params: SubscribeParams): Promise<EventSubscription>;
 
   /**
    * 关闭连接
@@ -57,9 +59,6 @@ export type { Protocol };
  * @returns 客户端实例
  */
 export function createClient(config: ClientConfig): IClient {
-  const { HTTPClient } = require('./http');
-  const { WebSocketClient } = require('./websocket');
-
   switch (config.protocol) {
     case 'http':
       return new HTTPClient(config);
@@ -88,8 +87,8 @@ export class Client implements IClient {
     return this.impl.sendRawTransaction(signedTxHex);
   }
 
-  async subscribe(filter: EventFilter): Promise<EventSubscription> {
-    return this.impl.subscribe(filter);
+  async subscribe(params: SubscribeParams): Promise<EventSubscription> {
+    return this.impl.subscribe(params);
   }
 
   async close(): Promise<void> {

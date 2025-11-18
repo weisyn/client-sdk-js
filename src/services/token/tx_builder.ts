@@ -72,19 +72,6 @@ export interface LockingConditionDraft {
 }
 
 /**
- * 构建交易草稿（内部函数，供 buildTransferTransaction 使用）
- */
-function buildTransactionDraft(
-  fromAddress: Uint8Array,
-  toAddress: Uint8Array,
-  amount: string,
-  tokenID: Uint8Array | null,
-  selectedUTXOs: UTXO[]
-): TransactionDraft {
-  const fromAddressHex = addressToHex(fromAddress);
-  const toAddressHex = addressToHex(toAddress);
-
-/**
  * 构建单笔转账交易
  * 
  * **流程**：

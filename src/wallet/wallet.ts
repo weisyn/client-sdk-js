@@ -12,8 +12,9 @@
 import { IWallet } from './types';
 import { bytesToHex, hexToBytes } from '../utils/hex';
 import { addressToHex } from '../utils/address';
-import { secp256k1 } from '@noble/secp256k1';
+import * as secp256k1 from '@noble/secp256k1';
 import { keccak256 } from 'js-sha3';
+// Note: js-sha3 exports keccak256 as a named export
 
 /**
  * Wallet 类

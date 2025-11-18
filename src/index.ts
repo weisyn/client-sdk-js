@@ -34,6 +34,7 @@ export * from './utils/hex';
 
 // 类型定义
 export * from './client/types';
+export type { Event, EventSubscription, SubscribeParams, SubscriptionType } from './client/types';
 export * from './services/token/types';
 export * from './services/staking/types';
 export * from './services/market/types';

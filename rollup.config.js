@@ -1,12 +1,12 @@
-import typescript from '@rollup/plugin-typescript';
-import resolve from '@rollup/plugin-node-resolve';
-import commonjs from '@rollup/plugin-commonjs';
-import { terser } from 'rollup-plugin-terser';
-import pkg from './package.json';
+const typescript = require('@rollup/plugin-typescript');
+const resolve = require('@rollup/plugin-node-resolve');
+const commonjs = require('@rollup/plugin-commonjs');
+const { terser } = require('rollup-plugin-terser');
+const pkg = require('./package.json');
 
 const isProduction = process.env.NODE_ENV === 'production';
 
-export default [
+module.exports = [
   // CommonJS 构建（Node.js）
   {
     input: 'src/index.ts',

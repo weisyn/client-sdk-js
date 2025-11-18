@@ -57,7 +57,12 @@ export interface JSONRPCError {
 }
 
 /**
- * 事件过滤器
+ * 订阅类型
+ */
+export type SubscriptionType = 'newHeads' | 'logs' | 'newPendingTxs' | 'syncing';
+
+/**
+ * 事件过滤器（用于合约事件订阅）
  */
 export interface EventFilter {
   /** 事件主题列表 */
@@ -67,6 +72,11 @@ export interface EventFilter {
   /** 接收方地址 */
   to?: Uint8Array;
 }
+
+/**
+ * 订阅参数（支持订阅类型字符串或事件过滤器）
+ */
+export type SubscribeParams = SubscriptionType | EventFilter;
 
 /**
  * 事件
