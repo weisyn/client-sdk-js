@@ -1,6 +1,6 @@
 # Dependencies
 node_modules/
-package-lock.json
+# package-lock.json - 应该提交到 Git，npm ci 需要它
 yarn.lock
 pnpm-lock.yaml
 
