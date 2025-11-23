@@ -26,7 +26,7 @@ export class NetworkError extends SDKError {
  * JSON-RPC 错误
  */
 export class JSONRPCError extends SDKError {
-  constructor(message: string, public rpcCode: number, public rpcData?: any) {
+  constructor(message: string, public rpcCode: number, public rpcData?: unknown) {
     super(message, 'JSONRPC_ERROR');
     this.name = 'JSONRPCError';
   }

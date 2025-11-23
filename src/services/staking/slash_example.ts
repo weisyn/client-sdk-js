@@ -72,7 +72,7 @@ export async function slashViaContract(
     throw new Error('Invalid response format from wes_callContract');
   }
 
-  const resultMap = result as any;
+  const resultMap = result;
   const unsignedTxHex = resultMap.unsigned_tx || resultMap.unsignedTx;
 
   if (!unsignedTxHex) {
@@ -90,9 +90,14 @@ export async function slashViaContract(
   const publicKey = wallet.publicKey;
   let pubkeyCompressed: Uint8Array;
   if (publicKey.length === 65) {
+    if (typeof require !== 'undefined') {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
     const { Point } = require('@noble/secp256k1');
     const point = Point.fromHex(bytesToHex(publicKey.slice(1)));
     pubkeyCompressed = point.toRawBytes(true);
+    } else {
+      throw new Error('require is not available. Please use ES module import for @noble/secp256k1');
+    }
   } else if (publicKey.length === 33) {
     pubkeyCompressed = publicKey;
   } else {
@@ -115,7 +120,7 @@ export async function slashViaContract(
     throw new Error('Invalid response format from wes_sendRawTransaction');
   }
 
-  const sendResultMap = sendResult as any;
+  const sendResultMap = sendResult;
   const txHash = sendResultMap.tx_hash || sendResultMap.txHash;
 
   if (!txHash) {

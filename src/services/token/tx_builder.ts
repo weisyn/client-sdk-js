@@ -132,7 +132,7 @@ export async function buildTransferTransaction(
 
   // 5. 选择足够的 UTXO（简化实现：选择第一个足够的 UTXO）
   const amountStr = amount.toString();
-  let selectedUTXOs: UTXO[] = [];
+  const selectedUTXOs: UTXO[] = [];
   let totalAmount = BigInt(0);
 
   for (const utxo of matchingUTXOs) {

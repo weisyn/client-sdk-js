@@ -114,9 +114,14 @@ export class StakingService {
     const publicKey = w.publicKey;
     let pubkeyCompressed: Uint8Array;
     if (publicKey.length === 65) {
+      if (typeof require !== 'undefined') {
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
       const { Point } = require('@noble/secp256k1');
       const point = Point.fromHex(bytesToHex(publicKey.slice(1)));
       pubkeyCompressed = point.toRawBytes(true);
+      } else {
+        throw new Error('require is not available. Please use ES module import for @noble/secp256k1');
+      }
     } else if (publicKey.length === 33) {
       pubkeyCompressed = publicKey;
     } else {
@@ -146,7 +151,7 @@ export class StakingService {
       // 查询交易详情
       const txResult = await this.client.call('wes_getTransactionByHash', [sendResult.txHash]);
       if (txResult && typeof txResult === 'object') {
-        const txData = txResult as any;
+        const txData = txResult;
         const outputs = txData.outputs || txData.Outputs || [];
         
         // 查找质押输出（通常是第一个资产输出，且 owner 是验证者地址）
@@ -270,9 +275,14 @@ export class StakingService {
     const publicKey = w.publicKey;
     let pubkeyCompressed: Uint8Array;
     if (publicKey.length === 65) {
+      if (typeof require !== 'undefined') {
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
       const { Point } = require('@noble/secp256k1');
       const point = Point.fromHex(bytesToHex(publicKey.slice(1)));
       pubkeyCompressed = point.toRawBytes(true);
+      } else {
+        throw new Error('require is not available. Please use ES module import for @noble/secp256k1');
+      }
     } else if (publicKey.length === 33) {
       pubkeyCompressed = publicKey;
     } else {
@@ -304,7 +314,7 @@ export class StakingService {
       // 查询交易详情
       const txResult = await this.client.call('wes_getTransactionByHash', [sendResult.txHash]);
       if (txResult && typeof txResult === 'object') {
-        const txData = txResult as any;
+        const txData = txResult;
         const outputs = txData.outputs || txData.Outputs || [];
         
         // 查找返回给用户的输出（owner 是解质押者地址）
@@ -412,9 +422,14 @@ export class StakingService {
     const publicKey = w.publicKey;
     let pubkeyCompressed: Uint8Array;
     if (publicKey.length === 65) {
+      if (typeof require !== 'undefined') {
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
       const { Point } = require('@noble/secp256k1');
       const point = Point.fromHex(bytesToHex(publicKey.slice(1)));
       pubkeyCompressed = point.toRawBytes(true);
+      } else {
+        throw new Error('require is not available. Please use ES module import for @noble/secp256k1');
+      }
     } else if (publicKey.length === 33) {
       pubkeyCompressed = publicKey;
     } else {
@@ -444,7 +459,7 @@ export class StakingService {
       // 查询交易详情
       const txResult = await this.client.call('wes_getTransactionByHash', [sendResult.txHash]);
       if (txResult && typeof txResult === 'object') {
-        const txData = txResult as any;
+        const txData = txResult;
         const outputs = txData.outputs || txData.Outputs || [];
         
         // 查找委托输出（通常是第一个资产输出，且 owner 是验证者地址）
@@ -544,9 +559,14 @@ export class StakingService {
     const publicKey = w.publicKey;
     let pubkeyCompressed: Uint8Array;
     if (publicKey.length === 65) {
+      if (typeof require !== 'undefined') {
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
       const { Point } = require('@noble/secp256k1');
       const point = Point.fromHex(bytesToHex(publicKey.slice(1)));
       pubkeyCompressed = point.toRawBytes(true);
+      } else {
+        throw new Error('require is not available. Please use ES module import for @noble/secp256k1');
+      }
     } else if (publicKey.length === 33) {
       pubkeyCompressed = publicKey;
     } else {
@@ -640,9 +660,14 @@ export class StakingService {
     const publicKey = w.publicKey;
     let pubkeyCompressed: Uint8Array;
     if (publicKey.length === 65) {
+      if (typeof require !== 'undefined') {
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
       const { Point } = require('@noble/secp256k1');
       const point = Point.fromHex(bytesToHex(publicKey.slice(1)));
       pubkeyCompressed = point.toRawBytes(true);
+      } else {
+        throw new Error('require is not available. Please use ES module import for @noble/secp256k1');
+      }
     } else if (publicKey.length === 33) {
       pubkeyCompressed = publicKey;
     } else {
@@ -673,7 +698,7 @@ export class StakingService {
       // 查询交易详情
       const txResult = await this.client.call('wes_getTransactionByHash', [sendResult.txHash]);
       if (txResult && typeof txResult === 'object') {
-        const txData = txResult as any;
+        const txData = txResult;
         const outputs = txData.outputs || txData.Outputs || [];
         
         // 查找返回给用户的输出（owner 是领取者地址）

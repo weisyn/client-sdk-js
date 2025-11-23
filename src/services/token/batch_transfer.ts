@@ -64,7 +64,7 @@ export async function buildBatchTransferTransaction(
   }
 
   // 5. 选择足够的 UTXO
-  let selectedUTXOs: UTXO[] = [];
+  const selectedUTXOs: UTXO[] = [];
   let totalSelectedAmount = BigInt(0);
 
   for (const utxo of matchingUTXOs) {

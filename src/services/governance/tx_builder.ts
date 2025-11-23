@@ -89,6 +89,10 @@ export async function buildProposeDraft(
 
   // 6. 为 StateOutput 构建元数据（满足节点端 state 输出要求）
   // 根据提案数据生成一个 deterministic 的 state_id（仅用于测试与追踪）
+  if (typeof require === 'undefined') {
+    throw new Error('require is not available. This function requires Node.js environment.');
+  }
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
   const crypto = require('crypto');
   const stateHash = crypto.createHash('sha256').update(proposalDataJSON).digest();
   const stateIDHex = bytesToHex(stateHash);
@@ -203,6 +207,10 @@ export async function buildVoteDraft(
   const voteDataJSON = JSON.stringify(voteData);
 
   // 7. 为 StateOutput 构建元数据
+  if (typeof require === 'undefined') {
+    throw new Error('require is not available. This function requires Node.js environment.');
+  }
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
   const crypto = require('crypto');
   const stateHash = crypto.createHash('sha256').update(voteDataJSON).digest();
   const stateIDHex = bytesToHex(stateHash);
@@ -314,6 +322,10 @@ export async function buildUpdateParamDraft(
   const paramDataJSON = JSON.stringify(paramData);
 
   // 6. 为 StateOutput 构建元数据
+  if (typeof require === 'undefined') {
+    throw new Error('require is not available. This function requires Node.js environment.');
+  }
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
   const crypto = require('crypto');
   const stateHash = crypto.createHash('sha256').update(paramDataJSON).digest();
   const stateIDHex = bytesToHex(stateHash);

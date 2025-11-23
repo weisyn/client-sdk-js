@@ -9,6 +9,9 @@
 import { IClient } from '../../client/client';
 import { Wallet } from '../../wallet/wallet';
 import { bytesToHex, hexToBytes } from '../../utils/hex';
+import { WESClientImpl } from '../../client/wesclient';
+import type { WESClient } from '../../client/wesclient';
+import type { ResourceFilters } from '../../client/wesclient-types';
 import {
   DeployStaticResourceRequest,
   DeployStaticResourceResult,
@@ -17,16 +20,35 @@ import {
   DeployAIModelRequest,
   DeployAIModelResult,
   ResourceInfo,
+  ResourceView,
+  ResourceHistory,
 } from './types';
+import {
+  convertLockingConditionsToProto,
+  createDefaultSingleKeyLock,
+  validateLockingConditions,
+} from './locking';
 
 /**
  * Resource 服务
  */
 export class ResourceService {
+  private wesClient?: WESClient;
+
   constructor(
     private client: IClient,
     private wallet?: Wallet
   ) {}
+
+  /**
+   * 获取 WESClient（延迟初始化）
+   */
+  private getWESClient(): WESClient {
+    if (!this.wesClient) {
+      this.wesClient = new WESClientImpl(this.client);
+    }
+    return this.wesClient;
+  }
 
   /**
    * 获取 Wallet（优先使用参数，其次使用默认 Wallet）
@@ -62,6 +84,7 @@ export class ResourceService {
   private async readFile(filePath: string): Promise<Uint8Array> {
     // Node.js 环境
     if (typeof require !== 'undefined') {
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
       const fs = require('fs').promises;
       const buffer = await fs.readFile(filePath);
       return new Uint8Array(buffer);
@@ -160,7 +183,7 @@ export class ResourceService {
       throw new Error('Invalid response format from wes_deployContract');
     }
 
-    const resultMap = result as any;
+    const resultMap = result;
 
     const success = resultMap.success;
     if (!success) {
@@ -224,15 +247,26 @@ export class ResourceService {
     // 1. 参数验证
     this.validateDeployContractRequest(request);
 
-    // 2. 获取 Wallet
+    // 2. ✅ 验证锁定条件（如果提供）
+    if (request.lockingConditions && request.lockingConditions.length > 0) {
+      const shouldValidate = request.validateLockingConditions !== false; // 默认 true
+      if (shouldValidate) {
+        validateLockingConditions(
+          request.lockingConditions,
+          request.allowContractLockCycles ?? false
+        );
+      }
+    }
+
+    // 3. 获取 Wallet
     const w = this.getWallet(wallet);
 
-    // 3. 验证地址匹配
+    // 4. 验证地址匹配
     if (!this.addressesEqual(w.address, request.from)) {
       throw new Error('Wallet address does not match from address');
     }
 
-    // 4. 读取 WASM 文件内容
+    // 5. 读取 WASM 文件内容
     let wasmBytes: Uint8Array;
     if (request.wasmContent) {
       wasmBytes = request.wasmContent;
@@ -242,13 +276,24 @@ export class ResourceService {
       throw new Error('Either wasmPath or wasmContent must be provided');
     }
 
-    // 5. Base64 编码 WASM 内容
+    // 6. Base64 编码 WASM 内容
     const wasmContentBase64 = this.base64Encode(wasmBytes);
 
-    // 6. 获取私钥（用于 API 调用）
+    // 7. 获取私钥（用于 API 调用）
     const privateKeyHex = w.exportPrivateKey();
 
-    // 7. 调用 `wes_deployContract` API
+    // 8. ✅ 构造锁定条件（转换为 proto 格式）
+    let lockingConditionsProto: any[];
+    if (request.lockingConditions && request.lockingConditions.length > 0) {
+      lockingConditionsProto = convertLockingConditionsToProto(request.lockingConditions);
+      console.log('[ResourceService] 使用用户指定的锁定条件:', JSON.stringify(lockingConditionsProto, null, 2));
+    } else {
+      // 默认：单密钥锁（部署者地址）
+      lockingConditionsProto = createDefaultSingleKeyLock(w.address);
+      console.log('[ResourceService] 使用默认单密钥锁:', JSON.stringify(lockingConditionsProto, null, 2));
+    }
+
+    // 9. 调用 `wes_deployContract` API
     // 注意：当前 API 需要 private_key，如果未来支持 return_unsigned_tx，可以改为使用 Wallet 签名
     const deployParams: any = {
       private_key: privateKeyHex,
@@ -256,7 +301,14 @@ export class ResourceService {
       abi_version: 'v1', // 默认 ABI 版本
       name: request.contractName,
       description: '', // 可选
+      locking_conditions: lockingConditionsProto,  // ✅ 新增字段
     };
+    
+    console.log('[ResourceService] 部署参数（不含私钥）:', {
+      ...deployParams,
+      private_key: '[REDACTED]',
+      wasm_content: `${deployParams.wasm_content.substring(0, 50)}...`,
+    });
 
     // 如果有初始化参数，添加到 payload 中
     if (request.initArgs && request.initArgs.length > 0) {
@@ -270,7 +322,7 @@ export class ResourceService {
       throw new Error('Invalid response format from wes_deployContract');
     }
 
-    const resultMap = result as any;
+    const resultMap = result;
 
     const success = resultMap.success;
     if (!success) {
@@ -374,7 +426,7 @@ export class ResourceService {
       throw new Error('Invalid response format from wes_deployAIModel');
     }
 
-    const resultMap = result as any;
+    const resultMap = result;
 
     const success = resultMap.success;
     if (!success) {
@@ -436,23 +488,236 @@ export class ResourceService {
       throw new Error('ContentHash must be 32 bytes');
     }
 
-    // 2. 调用节点 API 查询资源信息
-    const contentHashHex = bytesToHex(contentHash);
-    const result = await this.client.call('wes_getResource', [contentHashHex]);
+    // 2. 使用 WESClient 查询资源信息
+    const wesClient = this.getWESClient();
+    const resourceInfo = await wesClient.getResource(contentHash);
 
-    if (!result || typeof result !== 'object') {
-      throw new Error('Invalid resource response format');
+    // 3. 转换为 ResourceService 的 ResourceInfo 格式
+    return {
+      contentHash: bytesToHex(resourceInfo.contentHash),
+      type: mapResourceType(resourceInfo.resourceType),
+      size: resourceInfo.size,
+      mimeType: resourceInfo.mimeType,
+      owner: undefined, // TODO: 从 lockingConditions 推导 owner
+    };
+  }
+
+  /**
+   * 获取资源列表
+   * 
+   * **流程**：
+   * 1. 使用 WESClient 查询资源列表
+   * 2. 转换为 ResourceService 的 ResourceInfo 格式
+   * 
+   * **注意**：不需要 Wallet
+   */
+  async getResources(filters: ResourceFilters): Promise<ResourceInfo[]> {
+    const wesClient = this.getWESClient();
+    const resources = await wesClient.getResources(filters);
+
+    // 转换为 ResourceService 的 ResourceInfo 格式
+    return resources.map((resourceInfo) => ({
+      contentHash: bytesToHex(resourceInfo.contentHash),
+      type: mapResourceType(resourceInfo.resourceType),
+      size: resourceInfo.size,
+      mimeType: resourceInfo.mimeType,
+      owner: undefined, // TODO: 从 lockingConditions 推导 owner
+    }));
+  }
+
+  /**
+   * 列出资源列表（新版本，使用 ResourceView）
+   * 
+   * **流程**：
+   * 1. 调用 `wes_listResources` API
+   * 2. 解析返回的 ResourceView 数组
+   * 
+   * **注意**：不需要 Wallet
+   */
+  async listResources(filters: ResourceFilters): Promise<ResourceView[]> {
+    // 1. 构建过滤器参数
+    const filterMap: any = {};
+    if (filters.resourceType) {
+      filterMap.resourceType = filters.resourceType;
+    }
+    if (filters.owner && filters.owner.length > 0) {
+      filterMap.owner = '0x' + bytesToHex(filters.owner);
+    }
+    if (filters.limit) {
+      filterMap.limit = filters.limit;
+    }
+    if (filters.offset) {
+      filterMap.offset = filters.offset;
     }
 
-    const resourceData = result as any;
+    // 2. 调用 wes_listResources API
+    const result = await this.client.call('wes_listResources', [{ filters: filterMap }]);
 
-    // 3. 解析并返回资源信息
-    return {
-      contentHash: contentHashHex,
-      type: resourceData.type || 'static',
-      size: resourceData.size || 0,
-      mimeType: resourceData.mime_type || resourceData.mimeType,
-      owner: resourceData.owner ? hexToBytes(resourceData.owner) : undefined,
+    // 3. 解析结果数组
+    if (!Array.isArray(result)) {
+      throw new Error('Invalid response format: expected array');
+    }
+
+    // 4. 转换每个 ResourceView 对象
+    return result.map((item: any) => this.parseResourceView(item));
+  }
+
+  /**
+   * 获取资源视图（新版本，使用 ResourceView）
+   * 
+   * **流程**：
+   * 1. 调用 `wes_getResource` API
+   * 2. 解析返回的 ResourceView
+   * 
+   * **注意**：不需要 Wallet
+   */
+  async getResourceView(contentHash: Uint8Array): Promise<ResourceView> {
+    // 1. 验证 contentHash
+    if (!contentHash || contentHash.length !== 32) {
+      throw new Error('ContentHash must be 32 bytes');
+    }
+
+    // 2. 构建查询参数
+    const contentHashHex = bytesToHex(contentHash);
+    const params = [contentHashHex];
+
+    // 3. 调用 wes_getResource API
+    const result = await this.client.call('wes_getResource', params);
+
+    // 4. 解析结果
+    if (typeof result !== 'object' || result === null) {
+      throw new Error('Invalid response format');
+    }
+
+    // 5. 解析 ResourceView
+    return this.parseResourceView(result);
+  }
+
+  /**
+   * 获取资源历史
+   * 
+   * **流程**：
+   * 1. 调用 `wes_getResourceHistory` API
+   * 2. 解析返回的 ResourceHistory
+   * 
+   * **注意**：不需要 Wallet
+   */
+  async getResourceHistory(
+    contentHash: Uint8Array,
+    offset: number = 0,
+    limit: number = 50
+  ): Promise<ResourceHistory> {
+    // 1. 验证 contentHash
+    if (!contentHash || contentHash.length !== 32) {
+      throw new Error('ContentHash must be 32 bytes');
+    }
+
+    // 2. 构建查询参数
+    const contentHashHex = bytesToHex(contentHash);
+    const params = [{
+      resourceId: '0x' + contentHashHex,
+      offset,
+      limit,
+    }];
+
+    // 3. 调用 wes_getResourceHistory API
+    const result = await this.client.call('wes_getResourceHistory', params);
+
+    // 4. 解析结果
+    if (typeof result !== 'object' || result === null) {
+      throw new Error('Invalid response format');
+    }
+
+    const resultMap = result;
+    const history: ResourceHistory = {
+      upgrades: [],
     };
+
+    // 解析部署交易
+    if (resultMap.deployTx) {
+      history.deployTx = this.parseTxSummary(resultMap.deployTx);
+    }
+
+    // 解析升级交易
+    if (Array.isArray(resultMap.upgrades)) {
+      history.upgrades = resultMap.upgrades.map((tx: any) => this.parseTxSummary(tx));
+    }
+
+    // 解析引用统计
+    if (resultMap.referencesSummary) {
+      history.referencesSummary = {
+        totalReferences: resultMap.referencesSummary.totalReferences || 0,
+        uniqueCallers: resultMap.referencesSummary.uniqueCallers || 0,
+        lastReferenceTime: resultMap.referencesSummary.lastReferenceTime || 0,
+      };
+    }
+
+    return history;
+  }
+
+  /**
+   * 解析 ResourceView
+   */
+  private parseResourceView(itemMap: any): ResourceView {
+    const view: ResourceView = {
+      contentHash: itemMap.contentHash || '',
+      category: itemMap.category || 'STATIC',
+      executableType: itemMap.executableType,
+      mimeType: itemMap.mimeType,
+      size: itemMap.size || 0,
+      owner: itemMap.owner || '',
+      status: itemMap.status || 'ACTIVE',
+      creationTimestamp: itemMap.creationTimestamp || 0,
+      isImmutable: itemMap.isImmutable || false,
+      currentReferenceCount: itemMap.currentReferenceCount || 0,
+      totalReferenceTimes: itemMap.totalReferenceTimes || 0,
+      deployTxId: itemMap.deployTxId || '',
+      deployBlockHeight: itemMap.deployBlockHeight || 0,
+      deployBlockHash: itemMap.deployBlockHash || '',
+    };
+
+    // 解析 OutPoint
+    if (itemMap.outPoint) {
+      view.outPoint = {
+        txId: itemMap.outPoint.txId || '',
+        outputIndex: itemMap.outPoint.outputIndex || 0,
+      };
+    }
+
+    // 解析过期时间戳
+    if (itemMap.expiryTimestamp !== undefined) {
+      view.expiryTimestamp = itemMap.expiryTimestamp;
+    }
+
+    return view;
+  }
+
+  /**
+   * 解析交易摘要
+   */
+  private parseTxSummary(txMap: any): import('./types').TxSummary {
+    return {
+      txId: txMap.txId || '',
+      blockHash: txMap.blockHash || '',
+      blockHeight: txMap.blockHeight || 0,
+      timestamp: txMap.timestamp || 0,
+    };
+  }
+}
+
+/**
+ * 映射资源类型
+ */
+function mapResourceType(
+  type: 'contract' | 'model' | 'static'
+): 'static' | 'contract' | 'aimodel' {
+  switch (type) {
+    case 'contract':
+      return 'contract';
+    case 'model':
+      return 'aimodel';
+    case 'static':
+    default:
+      return 'static';
   }
 }

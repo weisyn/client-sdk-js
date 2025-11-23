@@ -88,6 +88,7 @@ function sha256(data: Uint8Array): Uint8Array {
   // Node.js 环境
   if (typeof require !== 'undefined') {
     try {
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
       const crypto = require('crypto');
       return new Uint8Array(crypto.createHash('sha256').update(data).digest());
     } catch (e) {
@@ -126,6 +127,7 @@ async function sha256Async(data: Uint8Array): Promise<Uint8Array> {
   
   // Node.js 环境：使用 crypto 模块
   if (typeof require !== 'undefined') {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
     const crypto = require('crypto');
     return new Uint8Array(crypto.createHash('sha256').update(data).digest());
   }

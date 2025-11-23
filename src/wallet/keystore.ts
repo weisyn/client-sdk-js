@@ -152,12 +152,14 @@ export class Keystore {
     }
     
     // Node.js 环境检查
+    if (typeof require !== 'undefined') {
     try {
-      // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
       const nodeCrypto = require('crypto');
       return new Uint8Array(nodeCrypto.randomBytes(32));
     } catch {
       // require 不可用
+      }
     }
 
     throw new Error('Unsupported environment');
@@ -174,12 +176,14 @@ export class Keystore {
     }
     
     // Node.js 环境检查
+    if (typeof require !== 'undefined') {
     try {
-      // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
       const nodeCrypto = require('crypto');
       return new Uint8Array(nodeCrypto.randomBytes(12));
     } catch {
       // require 不可用
+      }
     }
 
     throw new Error('Unsupported environment');
@@ -220,13 +224,15 @@ export class Keystore {
     }
 
     // Node.js 环境：使用 crypto 模块
+    if (typeof require !== 'undefined' && typeof Buffer !== 'undefined') {
     try {
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
       const crypto = require('crypto');
       const derivedKey = crypto.pbkdf2Sync(password, Buffer.from(salt), iterations, 32, 'sha256');
       return derivedKey; // 返回 Buffer
     } catch {
       // require 不可用
+      }
     }
 
     throw new Error('Unsupported environment');
@@ -263,8 +269,9 @@ export class Keystore {
     }
 
     // Node.js 环境：使用 crypto 模块
+    if (typeof require !== 'undefined' && typeof Buffer !== 'undefined') {
     try {
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
       const crypto = require('crypto');
       const keyBuffer = key as Buffer;
       const ivBuffer = Buffer.from(iv);
@@ -283,6 +290,7 @@ export class Keystore {
       };
     } catch {
       // require 不可用
+      }
     }
 
     throw new Error('Unsupported environment');
@@ -320,15 +328,16 @@ export class Keystore {
           tagLength: 128,
         },
         cryptoKey,
-        ciphertextWithTag.buffer as ArrayBuffer
+        ciphertextWithTag.buffer
       );
 
       return new Uint8Array(decrypted);
     }
 
     // Node.js 环境：使用 crypto 模块
+    if (typeof require !== 'undefined' && typeof Buffer !== 'undefined') {
     try {
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
       const crypto = require('crypto');
       const keyBuffer = key as Buffer;
       const ivBuffer = Buffer.from(iv);
@@ -348,6 +357,7 @@ export class Keystore {
       return new Uint8Array(decrypted.buffer, decrypted.byteOffset, decrypted.length);
     } catch {
       // require 不可用
+      }
     }
 
     throw new Error('Unsupported environment');
@@ -378,8 +388,9 @@ export class Keystore {
     }
 
     // Node.js 环境：使用 crypto 模块
+    if (typeof require !== 'undefined' && typeof Buffer !== 'undefined') {
     try {
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
       const crypto = require('crypto');
       const keyBuffer = key as Buffer;
       const dataBuffer = Buffer.from(data);
@@ -393,6 +404,7 @@ export class Keystore {
       return new Uint8Array(digest.buffer, digest.byteOffset, digest.length);
     } catch {
       // require 不可用
+      }
     }
 
     throw new Error('Unsupported environment');

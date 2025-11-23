@@ -259,9 +259,14 @@ export async function signAndSubmitTransaction(
   let pubkeyCompressed: Uint8Array;
   if (publicKey.length === 65) {
     // 未压缩格式：跳过第一个字节（0x04），取后64字节，然后压缩
+    if (typeof require !== 'undefined') {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
     const { Point } = require('@noble/secp256k1');
     const point = Point.fromHex(bytesToHex(publicKey.slice(1)));
     pubkeyCompressed = point.toRawBytes(true); // true = 压缩格式
+    } else {
+      throw new Error('require is not available. Please use ES module import for @noble/secp256k1');
+    }
   } else if (publicKey.length === 33) {
     pubkeyCompressed = publicKey;
   } else {

@@ -155,6 +155,7 @@ export class Wallet implements IWallet {
     
     // Node.js 环境使用 crypto 模块
     if (typeof require !== 'undefined') {
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
       const crypto = require('crypto');
       const hash = crypto.createHash('sha256').update(message).digest();
       return new Uint8Array(hash);

@@ -59,7 +59,7 @@ export async function buildBurnTransaction(
 
   // 4. 选择足够的 UTXO
   const amountStr = typeof amount === 'bigint' ? amount.toString() : amount.toString();
-  let selectedUTXOs: UTXO[] = [];
+  const selectedUTXOs: UTXO[] = [];
   let totalAmount = BigInt(0);
 
   for (const utxo of matchingUTXOs) {

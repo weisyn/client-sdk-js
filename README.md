@@ -18,15 +18,26 @@ __          ________ _____  _______     ___   _
 [![License](https://img.shields.io/badge/license-Apache--2.0-green.svg)](LICENSE)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.3+-blue.svg)](https://www.typescriptlang.org/)
 
-[🚀 快速开始](#-快速开始) • [📚 文档中心](./docs/README.md) • [💡 核心特性](#-核心特性) • [🏗️ 架构概览](#️-架构概览)
+[🚀 快速开始](#-快速开始) • [🎯 使用场景](#-使用场景) • [💡 核心能力](#-核心能力) • [🏗️ 架构概览](#️-架构概览) • [📚 文档导航](#-文档导航)
 
 </div>
 
 ---
 
-## 📦 简介
+## 🌟 它能帮你做什么？
 
-WES Client SDK 是一个用于开发 WES 区块链应用的 JavaScript/TypeScript 客户端工具包。它提供了与 WES 节点交互的完整接口，支持交易构建、签名、提交以及业务语义封装。
+在传统区块链开发中，开发者需要：
+- ❌ 理解底层协议细节（UTXO、交易构建、签名等）
+- ❌ 手动构建交易（选择输入、创建输出、计算手续费）
+- ❌ 处理复杂的业务逻辑组合（转账、授权、质押等）
+
+**WES Client SDK 让这一切成为过去**：
+
+- ✅ **业务语义优先** - 提供 `Transfer()`、`Stake()`、`Vote()` 等直观的业务接口
+- ✅ **TypeScript 支持** - 完整的 TypeScript 类型定义和编译期检查
+- ✅ **浏览器 & Node.js** - 同时支持浏览器和 Node.js 环境
+- ✅ **企业级能力** - 支持完整的业务服务（Token、Staking、Market、Governance、Resource）
+- ✅ **类型安全** - 完整的类型定义和编译期检查，减少运行时错误
 
 > 💡 **文档导航**：完整的 SDK 文档请查看 [📚 文档中心](./docs/README.md)
 
@@ -36,123 +47,16 @@ WES Client SDK 是一个用于开发 WES 区块链应用的 JavaScript/TypeScrip
 > 
 > 详见：[Contract SDK (Go)](https://github.com/weisyn/contract-sdk-go)
 
-### 核心业务服务
-
-SDK 提供5个完整的业务服务模块：
-
-| 服务 | 功能 | 状态 | 详细文档 |
-|------|------|------|---------|
-| **Token** | 转账、批量转账、铸造、销毁、余额查询 | ✅ 完整 | [Token 服务文档](docs/guides/token.md) |
-| **Staking** | 质押、解质押、委托、取消委托、领取奖励 | ✅ 完整 | [Staking 服务文档](docs/guides/staking.md) |
-| **Market** | AMM 交换、流动性管理、归属计划、托管 | ✅ 完整 | [Market 服务文档](docs/guides/market.md) |
-| **Governance** | 提案、投票、参数更新 | ✅ 完整 | [Governance 服务文档](docs/guides/governance.md) |
-| **Resource** | 合约部署、AI 模型部署、静态资源部署、资源查询 | ✅ 完整 | [Resource 服务文档](docs/guides/resource.md) |
-
-### 核心特性
-
-- ✅ **完整 API 封装** - 封装 HTTP/WebSocket 调用
-- ✅ **业务语义服务** - 提供 Token、Staking、Market、Governance、Resource 等业务服务
-- ✅ **交易构建与签名** - 完整的离线/在线交易构建与签名流程
-- ✅ **事件订阅** - 支持实时事件订阅（WebSocket）
-- ✅ **密钥管理** - 安全的密钥管理和钱包功能
-- ✅ **多协议支持** - HTTP、WebSocket 两种传输协议
-- ✅ **TypeScript 支持** - 完整的 TypeScript 类型定义
-- ✅ **浏览器和 Node.js** - 同时支持浏览器和 Node.js 环境
-- ✅ **完全独立** - 不依赖任何 WES 内部包，可独立发布
-
-### 架构理念
-
-**WES 协议层提供基础能力，SDK 层实现业务语义**：
-
-- **WES 协议层**：提供固化的基础能力
-  - 2种输入模式（AssetInput、ResourceInput）
-  - 3种输出类型（AssetOutput、StateOutput、ResourceOutput）
-  - 7种锁定条件（SingleKey、MultiKey、Contract、Delegation、Threshold、Time、Height）
-  
-- **SDK 层**：将基础能力组合成业务语义
-  - 转账、质押、投票等业务操作 = 输入输出和锁定条件的组合
-  - 所有业务语义都在 SDK 层实现，不依赖节点业务服务 API
-
-> 📖 **详细说明**：详见 [设计原则 - 业务语义在 SDK 层](#-设计原则) | [架构文档](docs/architecture.md)
-
-## 🏗️ 架构概览
-
-> 📖 **完整架构文档**：详见 [架构设计文档](docs/architecture.md)
-
-### SDK 内部分层架构
-
-在 SDK 仓库内部，采用清晰的分层设计：
-
-```mermaid
-graph TB
-    subgraph APP_LAYER["应用层 (DApp)"]
-        direction LR
-        WALLET_APP["钱包应用"]
-        DAPP_FRONT["DApp 前端"]
-        BACKEND["后端服务"]
-    end
-    
-    subgraph SERVICES_LAYER["业务服务层 (services/)"]
-        direction LR
-        TOKEN["Token"]
-        STAKING["Staking"]
-        MARKET["Market"]
-        GOVERNANCE["Governance"]
-        RESOURCE["Resource"]
-    end
-    
-    subgraph CLIENT_LAYER["核心客户端层 (client/)"]
-        direction LR
-        HTTP_CLIENT["HTTP"]
-        WS_CLIENT["WebSocket"]
-    end
-    
-    subgraph WALLET_LAYER["钱包层 (wallet/)"]
-        direction LR
-        WALLET["Wallet"]
-        KEYSTORE["Keystore"]
-    end
-    
-    subgraph NODE["WES 节点"]
-        JSONRPC_API["JSON-RPC API<br/>(HTTP/WebSocket)"]
-    end
-    
-    APP_LAYER --> SERVICES_LAYER
-    SERVICES_LAYER --> CLIENT_LAYER
-    SERVICES_LAYER --> WALLET_LAYER
-    CLIENT_LAYER --> NODE
-    WALLET_LAYER -.签名.-> SERVICES_LAYER
-    
-    style SERVICES_LAYER fill:#4CAF50,color:#fff
-    style CLIENT_LAYER fill:#2196F3,color:#fff
-    style WALLET_LAYER fill:#FF9800,color:#fff
-    style NODE fill:#9C27B0,color:#fff
-```
-
-### 交易流程
-
-```mermaid
-graph TD
-    APP["应用层调用"] --> SERVICE["业务服务方法<br/>(如: tokenService.transfer)"]
-    SERVICE --> DRAFT["构建交易草稿<br/>(DraftJSON)"]
-    DRAFT --> API["调用节点 API<br/>(wes_buildTransaction)"]
-    API --> UNSIGNED["获取未签名交易<br/>(unsignedTx)"]
-    UNSIGNED --> SIGN["Wallet 签名<br/>(wallet.signTransaction)"]
-    SIGN --> FINALIZE["完成交易<br/>(wes_finalizeTransactionFromDraft)"]
-    FINALIZE --> SEND["提交已签名交易<br/>(wes_sendRawTransaction)"]
-    SEND --> RESULT["返回交易哈希<br/>(txHash)"]
-    
-    style APP fill:#E3F2FD
-    style SERVICE fill:#C8E6C9
-    style SIGN fill:#FFF9C4
-    style RESULT fill:#F3E5F5
-```
+---
 
 ## 🚀 快速开始
 
-> 📖 **完整快速开始指南**：详见 [快速开始文档](docs/getting-started.md)
+### 前置要求
 
-### 安装
+- **Node.js 20+** - 用于开发环境
+- **TypeScript 5.0+** - 用于类型检查（可选但推荐）
+
+### 安装 SDK
 
 ```bash
 npm install @weisyn/client-sdk-js
@@ -213,259 +117,339 @@ console.log(`转账成功！交易哈希: ${result.txHash}`);
 </html>
 ```
 
-## 📚 核心概念
+> 📖 **完整指南**：[开发者指南](./docs/DEVELOPER_GUIDE.md) | [快速开始文档](./docs/getting-started.md)
 
-### 1. 客户端初始化
+---
 
-SDK 支持两种传输协议：
+## 🎯 使用场景
+
+### 按角色选择使用方式
+
+| 角色 | 推荐使用方式 | 说明 |
+|------|------------|------|
+| **合约开发者** | `WESClient` + `ResourceService` | 部署合约、查询合约状态、调用合约方法 |
+| **Workbench 用户** | `WESClient` + 业务服务（`TokenService`、`StakingService` 等） | 完整的业务操作，包括合约部署、代币操作、质押等 |
+| **后端服务** | `WESClient` + 业务服务 | 服务器端应用，需要完整的业务语义支持 |
+| **DApp 前端** | `WESClient` + `Wallet` | 浏览器应用，需要钱包集成和用户交互（推荐使用 ESM 包和 Tree Shaking） |
+| **工具链开发者** | 底层 `Client` 接口 | 需要直接调用 JSON-RPC 或自定义逻辑 |
+
+> 📖 **详细指南**：
+> - [WESClient 使用示例](./docs/examples/wesclient.md) - 类型化 API 使用
+> - [业务服务指南](./docs/guides/) - 完整的业务服务说明
+> - [业务场景实现指南](./docs/BUSINESS_SCENARIOS.md) - 如何实现业务场景
+
+---
+
+## 💡 核心能力
+
+### 1. 🎯 WESClient 类型化 API
+
+SDK 提供强类型的 `WESClient` 接口，封装所有核心 RPC 调用：
 
 ```typescript
-// HTTP 客户端（最常用）
-const client = new Client({
+import { WESClient } from '@weisyn/client-sdk-js';
+
+// 初始化 WESClient
+const wesClient = new WESClient({
   endpoint: 'http://localhost:8545',
   protocol: 'http',
-  timeout: 30000,
 });
 
-// WebSocket 客户端（用于事件订阅）
-const wsClient = new Client({
-  endpoint: 'ws://localhost:8081',
-  protocol: 'websocket',
-});
+// UTXO 操作
+const utxo = await wesClient.getUTXO(utxoID);
+const utxos = await wesClient.batchGetUTXOs(utxoIDs);
+
+// 资源操作
+const resource = await wesClient.getResource(contentHash);
+
+// 交易操作
+const tx = await wesClient.getTransaction(txHash);
+const txHash = await wesClient.submitTransaction(signedTx);
 ```
 
-### 2. 业务服务
+> 📖 **详细文档**：[API 参考](./docs/API_REFERENCE.md#wesclient-类型化-api)
 
-所有业务服务都遵循相同的设计模式：
+### 2. 🔧 业务服务层
+
+SDK 提供完整的业务服务模块，让开发者专注于业务逻辑：
+
+| 服务 | 功能 | 详细文档 |
+|------|------|---------|
+| **Token** | 转账、批量转账、铸造、销毁、余额查询 | [Token 服务](./docs/API_REFERENCE.md#token-服务) |
+| **Staking** | 质押、解质押、委托、取消委托、领取奖励 | [Staking 服务](./docs/API_REFERENCE.md#staking-服务) |
+| **Market** | AMM 交换、流动性管理、归属计划、托管 | [Market 服务](./docs/API_REFERENCE.md#market-服务) |
+| **Governance** | 提案、投票、参数更新 | [Governance 服务](./docs/API_REFERENCE.md#governance-服务) |
+| **Resource** | 合约部署、AI 模型部署、静态资源部署、资源查询 | [Resource 服务](./docs/API_REFERENCE.md#resource-服务) |
+
+> 📖 **完整能力矩阵**：详见 [API 参考](./docs/API_REFERENCE.md)
+
+### 3. 🔐 交易构建与签名
+
+完整的离线/在线交易构建与签名流程：
 
 ```typescript
-// 创建服务实例
-const tokenService = new TokenService(client, wallet);
+// 业务服务自动处理交易构建
+const result = await tokenService.transfer(req);
 
-// 调用业务方法
-const result = await tokenService.transfer({...});
+// SDK 内部流程：
+// 1. 构建交易草稿 (DraftJSON)
+// 2. 调用节点 API (wes_buildTransaction)
+// 3. Wallet 签名
+// 4. 完成交易 (wes_finalizeTransactionFromDraft)
+// 5. 提交交易 (wes_sendRawTransaction)
 ```
 
-#### Token 服务
+> 📖 **详细流程**：详见 [开发者指南](./docs/DEVELOPER_GUIDE.md#交易流程)
 
-```typescript
-const tokenService = new TokenService(client, wallet);
+### 4. 📡 事件订阅 & 钱包
 
-// 单笔转账
-const result = await tokenService.transfer({
-  from: fromAddr,
-  to: toAddr,
-  amount: 1000,
-  tokenId: null, // null = 原生币
-});
+- **事件订阅**：支持实时事件订阅（WebSocket）
+- **密钥管理**：安全的密钥管理和钱包功能
+- **浏览器支持**：使用 Web Crypto API，Node.js 使用 crypto 模块
 
-// 批量转账
-const result = await tokenService.batchTransfer({
-  from: fromAddr,
-  transfers: [
-    { to: addr1, amount: 100, tokenId: tokenID },
-    { to: addr2, amount: 200, tokenId: tokenID },
-  ],
-});
+> 📖 **详细文档**：详见 [API 参考](./docs/API_REFERENCE.md#事件订阅) | [钱包功能](./docs/API_REFERENCE.md#钱包功能)
 
-// 代币铸造
-const result = await tokenService.mint({
-  to: recipientAddr,
-  amount: 10000,
-  tokenId: tokenID,
-  contractAddr: contractAddr,
-});
+### 5. 🌐 浏览器 & Node.js 支持
 
-// 查询余额
-const balance = await tokenService.getBalance(address, tokenID);
+- **浏览器**：支持 ESM、UMD 格式，支持 Tree Shaking
+- **Node.js**：支持 CJS、ESM 格式
+- **TypeScript**：完整的类型定义
+
+> 📖 **环境限制和兼容性**：详见 [语言与环境限制](./docs/LANGUAGE_AND_ENV_LIMITATIONS.md)
+
+---
+
+## 🏗️ 架构概览
+
+> 📖 **完整架构文档**：详见 [SDK 架构文档](./docs/SDK_ARCHITECTURE.md) | [架构规划文档](./docs/ARCHITECTURE_PLAN.md)
+
+### 在 WES 7 层架构中的位置
+
+`client-sdk-js` 位于 WES 系统的**应用层 & 开发者生态**中的 **SDK 工具链**，通过 **API 网关层**与 WES 节点交互：
+
+```mermaid
+graph TB
+    subgraph DEV_ECOSYSTEM["🎨 应用层 & 开发者生态"]
+        direction TB
+        subgraph SDK_LAYER["SDK 工具链"]
+            direction LR
+            CLIENT_SDK["Client SDK<br/>Go/JS/Python/Java<br/>📱 DApp·钱包·浏览器<br/>⭐ client-sdk-js<br/>链外应用开发"]
+            CONTRACT_SDK["Contract SDK (WASM)<br/>TypeScript/AssemblyScript<br/>📜 智能合约开发<br/>链上合约开发<br/>github.com/weisyn/contract-sdk-js"]
+            AI_SDK["AI SDK (ONNX)"]
+        end
+        subgraph END_USER_APPS["终端应用"]
+            direction LR
+            WALLET_APP["Wallet<br/>钱包应用"]
+            EXPLORER["Explorer<br/>区块浏览器"]
+            DAPP["DApp<br/>去中心化应用"]
+        end
+    end
+    
+    subgraph API_GATEWAY["🌐 API 网关层"]
+        direction LR
+        JSONRPC["JSON-RPC 2.0<br/>:8545"]
+        HTTP["HTTP REST<br/>/api/v1/*"]
+        WS["WebSocket<br/>:8081"]
+    end
+    
+    subgraph BIZ_LAYER["💼 业务服务层"]
+        APP_SVC["App Service<br/>应用编排·生命周期"]
+    end
+    
+    WALLET_APP --> CLIENT_SDK
+    EXPLORER --> CLIENT_SDK
+    DAPP --> CLIENT_SDK
+    
+    CLIENT_SDK --> JSONRPC
+    CLIENT_SDK --> HTTP
+    CLIENT_SDK --> WS
+    
+    JSONRPC --> APP_SVC
+    HTTP --> APP_SVC
+    WS --> APP_SVC
+    
+    style CLIENT_SDK fill:#81C784,color:#fff,stroke:#4CAF50,stroke-width:3px
+    style API_GATEWAY fill:#64B5F6,color:#fff
+    style BIZ_LAYER fill:#FFB74D,color:#333
 ```
 
-### 3. 钱包功能
+> 📖 **完整 WES 架构**：详见 [WES 系统架构文档](https://github.com/weisyn/go-weisyn/blob/main/docs/system/architecture/1-STRUCTURE_VIEW.md#-系统分层架构)  
+> 📜 **Contract SDK**：用于链上智能合约开发，详见 [Contract SDK (JS)](https://github.com/weisyn/contract-sdk-js)
 
-```typescript
-// 创建新钱包
-const wallet = Wallet.create();
+### SDK 内部分层架构
 
-// 从私钥创建钱包
-const wallet = Wallet.fromPrivateKey('0x...');
+SDK 采用分层架构，**应用开发者只需使用业务服务层**：
 
-// 获取地址
-const address = wallet.address; // Uint8Array (20 字节)
-
-// 签名交易
-const signedTx = await wallet.signTransaction(unsignedTxBytes);
-
-// 签名消息
-const signature = await wallet.signMessage(messageBytes);
+```mermaid
+graph TB
+    subgraph APP_LAYER["应用层 (DApp)"]
+        direction LR
+        WALLET_APP["钱包应用"]
+        DAPP_FRONT["DApp 前端"]
+        BACKEND["后端服务"]
+    end
+    
+    subgraph SERVICES_LAYER["业务服务层 (services/)"]
+        direction LR
+        TOKEN["Token"]
+        STAKING["Staking"]
+        MARKET["Market"]
+        GOVERNANCE["Governance"]
+        RESOURCE["Resource"]
+    end
+    
+    subgraph CLIENT_LAYER["核心客户端层 (client/)"]
+        direction LR
+        HTTP_CLIENT["HTTP"]
+        WS_CLIENT["WebSocket"]
+    end
+    
+    subgraph WALLET_LAYER["钱包层 (wallet/)"]
+        direction LR
+        WALLET["Wallet"]
+        KEYSTORE["Keystore"]
+    end
+    
+    subgraph NODE["WES 节点"]
+        JSONRPC_API["JSON-RPC API<br/>(HTTP/WebSocket)"]
+    end
+    
+    APP_LAYER --> SERVICES_LAYER
+    SERVICES_LAYER --> CLIENT_LAYER
+    SERVICES_LAYER --> WALLET_LAYER
+    CLIENT_LAYER --> NODE
+    WALLET_LAYER -.签名.-> SERVICES_LAYER
+    
+    style SERVICES_LAYER fill:#4CAF50,color:#fff
+    style CLIENT_LAYER fill:#2196F3,color:#fff
+    style WALLET_LAYER fill:#FF9800,color:#fff
+    style NODE fill:#9C27B0,color:#fff
 ```
 
-### 4. 事件订阅
+**关键原则**：
+- ✅ **应用开发者**：只使用 `services` 层的业务语义接口
+- ✅ **SDK 职责**：自动处理底层协议细节（交易构建、签名、提交等）
+- ❌ **不需要了解**：底层协议实现细节
 
-```typescript
-// 使用 WebSocket 客户端订阅事件
-const wsClient = new Client({
-  endpoint: 'ws://localhost:8081',
-  protocol: 'websocket',
-});
+> 📖 **完整架构和交易流程**：详见 [SDK 架构文档](./docs/SDK_ARCHITECTURE.md)
 
-const subscription = await wsClient.subscribe({
-  topics: ['Transfer', 'Mint'],
-  from: fromAddr,
-  to: toAddr,
-});
+---
 
-subscription.on('event', (event) => {
-  console.log(`收到事件: ${event.topic}, 数据: ${event.data}`);
-});
+## 📖 文档导航
+
+### 🎯 按角色导航
+
+**👨‍💻 应用开发者**
+
+- [快速开始](#-快速开始) → [开发者指南](./docs/DEVELOPER_GUIDE.md) → [业务场景实现指南](./docs/BUSINESS_SCENARIOS.md)
+
+**🏗️ 架构师/贡献者**
+
+- [架构概览](#-架构概览) → [文档中心](./docs/README.md) → [架构设计文档](./docs/SDK_ARCHITECTURE.md)
+
+**📚 深入理解**
+
+- [API 参考](./docs/API_REFERENCE.md) → [业务场景实现指南](./docs/BUSINESS_SCENARIOS.md)
+
+### 📘 核心文档
+
+| 文档 | 说明 | 受众 |
+|------|------|------|
+| ⭐ **[主 README](./README.md)** | SDK 总览和快速开始 | 所有用户 |
+| 📖 **[文档中心](./docs/README.md)** | 完整文档索引和导航 | 所有用户 |
+| 🚀 **[开发者指南](./docs/DEVELOPER_GUIDE.md)** | 如何使用 TS/JS SDK 开发应用 | 应用开发者 |
+| 📚 **[API 参考](./docs/API_REFERENCE.md)** | TS/JS SDK 接口详细说明 | 应用开发者 |
+| 🎯 **[业务场景实现指南](./docs/BUSINESS_SCENARIOS.md)** | 如何实现业务场景 | 应用开发者 |
+| 🏗️ **[架构设计文档](./docs/SDK_ARCHITECTURE.md)** | SDK 架构设计讨论 | 架构师/贡献者 |
+| ⚠️ **[语言与环境限制](./docs/LANGUAGE_AND_ENV_LIMITATIONS.md)** | TypeScript/JavaScript 限制和最佳实践 | 应用开发者 |
+
+### 🔗 模块文档
+
+- **[WESClient 使用示例](./docs/examples/wesclient.md)** - 类型化 API 使用
+- **[业务服务指南](./docs/guides/)** - 完整的业务服务说明
+- **[钱包功能](./docs/api/wallet.md)** - 钱包功能详细说明
+
+> 📖 **完整文档导航**：[文档中心](./docs/README.md)
+
+---
+
+## 🆚 与其他 SDK 的对比
+
+| 特性 | 传统 SDK | WES SDK |
+|------|---------|---------|
+| **API 设计** | 底层原语（TxAddInput 等） | 业务语义（Transfer、Stake 等） |
+| **业务语义** | 需要手动组合 | SDK 层自动处理 |
+| **复杂业务** | 难以实现长事务 | 支持原子性长事务 |
+| **类型安全** | 部分支持 | 完整类型系统（TypeScript） |
+| **学习曲线** | 需要了解底层协议 | 直观的业务接口 |
+
+### Go SDK vs JS SDK
+
+| 维度 | Go SDK | JS SDK |
+|------|--------|--------|
+| **语言** | Go | JavaScript/TypeScript |
+| **环境** | 服务器/CLI | 浏览器/Node.js |
+| **业务语义** | ✅ 一致 | ✅ 一致 |
+| **传输协议** | HTTP/gRPC/WebSocket | HTTP/WebSocket |
+| **类型系统** | Go 类型系统 | TypeScript 类型系统 |
+
+> 📖 **能力对比**：详见 [应用场景分析](./docs/APPLICATION_SCENARIOS_ANALYSIS.md)
+
+---
+
+## 🤝 贡献指南
+
+我们欢迎社区贡献！查看 [贡献指南](../CONTRIBUTING.md) 了解详情。
+
+```bash
+# 设置开发环境
+npm install
+npm run build
+
+# 运行测试
+npm test
+
+# 提交变更
+git commit -S -m "feat: your contribution"
+git push origin your-branch
 ```
 
-## 🏗️ 目录结构
-
-```
-client-sdk-js/
-│
-├── src/                    # 源代码
-│   ├── client/            # 核心客户端层
-│   │   ├── client.ts      # Client 接口定义
-│   │   ├── config.ts      # 配置管理
-│   │   ├── errors.ts      # 错误定义
-│   │   ├── http.ts        # HTTP 客户端实现
-│   │   └── websocket.ts   # WebSocket 客户端实现
-│   │
-│   ├── services/          # 业务服务层
-│   │   ├── token/         # Token 服务
-│   │   ├── staking/       # Staking 服务
-│   │   ├── market/        # Market 服务
-│   │   ├── governance/    # Governance 服务
-│   │   └── resource/      # Resource 服务
-│   │
-│   ├── wallet/           # 钱包功能
-│   │   ├── wallet.ts      # Wallet 接口和实现
-│   │   └── keystore.ts    # Keystore 管理器
-│   │
-│   ├── utils/            # 工具函数
-│   │   └── address.ts     # 地址转换工具
-│   │
-│   └── index.ts          # 入口文件
-│
-├── examples/             # 示例代码
-│   └── simple-transfer/
-│       └── index.ts
-│
-├── tests/                # 测试代码
-│
-├── dist/                 # 构建输出
-│
-├── package.json
-├── tsconfig.json
-└── README.md
-```
-
-## 📖 文档
-
-### 快速开始
-- **[快速开始指南](./docs/getting-started.md)** - 安装、配置、第一个示例
-- **[概述](./docs/overview.md)** - SDK 视角的 WES 核心概念
-
-### 完整文档
-- **[📚 文档中心](./docs/README.md)** - 完整的文档导航
-- **[API 参考](./docs/api/)** - 完整的 API 文档
-- **[使用指南](./docs/guides/)** - 业务场景使用指南
-- **[参考文档](./docs/reference/)** - 工具和最佳实践
-
-### 其他
-- **[测试指南](./docs/testing.md)** - 单元测试和集成测试
-- **[故障排查](./docs/troubleshooting.md)** - 常见问题和解决方案
-
-## 🔒 安全考虑
-
-### 1. 密钥管理
-
-- ✅ 私钥不离开钱包
-- ✅ 支持 Keystore 加密存储
-- ✅ 浏览器环境使用 Web Crypto API
-- ✅ Node.js 环境使用 crypto 模块
-
-### 2. 交易签名流程
-
-1. 构建未签名交易 (SDK 层) - 不包含私钥信息
-2. Wallet 签名 (客户端) - 私钥不离开钱包
-3. 提交已签名交易 (API) - 节点验证签名
-4. 广播到网络 - 交易上链
-
-### 3. 连接安全
-
-- ✅ TLS 支持（HTTPS/WSS）
-- ✅ 超时控制
-- ✅ 重试机制
-
-## 🎯 设计原则
-
-### 1. SDK 独立性
-
-- ✅ 只依赖标准库和通用第三方库
-- ✅ 通过 API（JSON-RPC/HTTP/WebSocket）与节点交互
-- ✅ 不依赖任何 WES 内部包
-
-### 2. 业务语义在 SDK 层
-
-SDK 层提供业务语义接口，底层调用通用 API。
-
-## 🐛 调试技巧
-
-### 1. 启用调试模式
-
-```typescript
-const client = new Client({
-  endpoint: 'http://localhost:8545',
-  protocol: 'http',
-  debug: true, // 启用调试日志
-});
-```
-
-## 📦 版本兼容性
-
-| SDK 版本 | API 版本 | Node.js 版本 | 状态 |
-|---------|----------|-------------|------|
-| v0.1.0-alpha | v1.0.0 | 18+ | ✅ 开发中 |
-
-## 🤝 贡献
-
-欢迎提交 Issue 和 Pull Request！
+---
 
 ## 📄 许可证
 
-Apache-2.0 License
+本项目基于 Apache-2.0 许可证开源 - 详见 [LICENSE](../LICENSE) 文件。
 
-## 🔗 相关资源
+---
 
-### WES 生态
+## 🔗 相关链接
 
-- [WES 主项目](https://github.com/weisyn/weisyn-core) - WES 区块链核心实现
-- [Contract SDK (Go)](https://github.com/weisyn/contract-sdk-go) - 智能合约开发 SDK（Go/Rust/AS/C）
-- [Client SDK (Go)](https://github.com/weisyn/client-sdk-go) - 客户端 SDK（Go 版本）
-- [Client SDK (JS/TS)](https://github.com/weisyn/client-sdk-js) - 客户端 SDK（JavaScript/TypeScript 版本）⭐ 当前仓库
+### WES 平台资源
 
-### SDK 对比
+- [WES 主项目](https://github.com/weisyn/weisyn) - WES 区块链主仓库
+- [WES 文档中心](../../../weisyn.git/docs/) - 完整技术文档
+- [WES 系统架构](../../../weisyn.git/docs/system/architecture/) - 系统架构详解
+- [WES 主 README](../../../weisyn.git/README.md) - WES 项目总览
 
-| 特性 | Go SDK | JS/TS SDK | 说明 |
-|------|--------|-----------|------|
-| **语言** | Go | JavaScript/TypeScript | - |
-| **环境** | 服务器/CLI | 浏览器/Node.js | - |
-| **Token 服务** | ✅ 完整 | ✅ 完整 | 转账、批量转账、铸造、销毁、余额查询 |
-| **Staking 服务** | ✅ 完整 | ✅ 完整 | 质押、解质押、委托、取消委托、领取奖励 |
-| **Market 服务** | ✅ 完整 | ✅ 完整 | AMM 交换、流动性管理、归属计划、托管 |
-| **Governance 服务** | ✅ 完整 | ✅ 完整 | 提案、投票、参数更新 |
-| **Resource 服务** | ✅ 完整 | ✅ 完整 | 合约部署、AI 模型部署、静态资源部署、资源查询 |
-| **Wallet** | ✅ 完整 | ✅ 完整 | 密钥生成、签名、地址派生 |
-| **传输协议** | HTTP/gRPC/WebSocket | HTTP/WebSocket | Go SDK 额外支持 gRPC |
-| **仓库** | [client-sdk-go](https://github.com/weisyn/client-sdk-go) | [client-sdk-js](https://github.com/weisyn/client-sdk-js) | - |
+### SDK 相关资源
 
-> 📖 **详细能力对比**：两个 SDK 的能力对比请查看 [Go/JS SDK 能力对比文档](../client-sdk-go.git/docs/capability-comparison.md)
+- [Contract SDK Go](../../contract-sdk-go.git/README.md) - Go 合约 SDK
+- [Contract SDK JS](../../contract-sdk-js.git/README.md) - TypeScript 合约 SDK
+- [Client SDK Go](../../client-sdk-go.git/README.md) - Go 客户端 SDK
+- [Model Workbench](../../workbench/model-workbench.git/README.md) - 模型工作台
 
-> 💡 **提示**：两个 SDK 提供相同的业务语义接口，可以根据项目需求选择合适的语言版本。
+---
+
+<div align="center">
+
+### 让区块链应用开发回归业务本质
+
+[立即开始](#-快速开始) • [查看文档](./docs/README.md) • [API 参考](./docs/API_REFERENCE.md)
+
+Made with ❤️ by the WES Team
+
+</div>
 
 ---
 
 **最后更新**: 2025-01-23
-

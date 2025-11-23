@@ -87,5 +87,62 @@ module.exports = [
       isProduction && terser(),
     ],
   },
+  // Mock 包 - CommonJS
+  {
+    input: 'mock/index.ts',
+    output: {
+      file: 'dist/mock/index.js',
+      format: 'cjs',
+      sourcemap: true,
+      exports: 'named',
+    },
+    external: [
+      ...Object.keys(pkg.dependencies || {}),
+      ...Object.keys(pkg.peerDependencies || {}),
+      // 注意：不将内部模块设为 external，让 rollup 打包它们
+    ],
+    plugins: [
+      typescript({
+        tsconfig: './tsconfig.json',
+        declaration: true,
+        declarationDir: './dist/mock',
+        isolatedModules: false,
+        filterRoot: process.cwd(),
+      }),
+      resolve({
+        preferBuiltins: true,
+      }),
+      commonjs(),
+      isProduction && terser(),
+    ],
+  },
+  // Mock 包 - ES Module
+  {
+    input: 'mock/index.ts',
+    output: {
+      file: 'dist/mock/index.esm.js',
+      format: 'es',
+      sourcemap: true,
+    },
+    external: [
+      ...Object.keys(pkg.dependencies || {}),
+      ...Object.keys(pkg.peerDependencies || {}),
+      // 注意：不将内部模块设为 external，让 rollup 打包它们
+    ],
+    plugins: [
+      typescript({
+        tsconfig: './tsconfig.json',
+        declaration: true,
+        declarationDir: './dist/mock',
+        isolatedModules: false,
+        filterRoot: process.cwd(),
+      }),
+      resolve({
+        preferBuiltins: true,
+      }),
+      commonjs(),
+      isProduction && terser(),
+    ],
+  },
 ];
 

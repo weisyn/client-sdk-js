@@ -13,10 +13,15 @@ if (typeof window !== 'undefined' && window.WebSocket) {
   WebSocketImpl = window.WebSocket;
 } else if (typeof global !== 'undefined') {
   // Node.js 环境：使用 ws 包
+  if (typeof require !== 'undefined') {
   try {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
     WebSocketImpl = require('ws');
   } catch (e) {
     throw new Error('WebSocket is not available. In Node.js, please install the "ws" package.');
+    }
+  } else {
+    throw new Error('require is not available. WebSocket requires Node.js environment.');
   }
 } else {
   throw new Error('WebSocket is not available in this environment');
@@ -124,7 +129,7 @@ export class WebSocketClient implements IClient {
 
       // 处理订阅事件通知（wes_subscription）
       if (data.method === 'wes_subscription' && data.params) {
-        const params = data.params as any;
+        const params = data.params;
         const subscriptionId = params.subscription;
         const eventData = params.result;
 

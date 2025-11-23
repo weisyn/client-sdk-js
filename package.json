@@ -5,9 +5,22 @@
   "main": "dist/index.js",
   "module": "dist/index.esm.js",
   "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.esm.js",
+      "require": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./mock": {
+      "import": "./dist/mock/index.esm.js",
+      "require": "./dist/mock/index.js",
+      "types": "./dist/mock/mock/index.d.ts"
+    }
+  },
   "files": [
     "dist",
     "src",
+    "mock",
     "README.md",
     "LICENSE"
   ],
@@ -24,6 +37,8 @@
     "lint:fix": "eslint src --ext .ts --fix",
     "format": "prettier --write \"src/**/*.ts\"",
     "format:check": "prettier --check \"src/**/*.ts\"",
+    "check": "npm run lint && npm run format:check && npm run test:unit",
+    "prepack": "npm run check",
     "prepublishOnly": "npm run build && npm run build:types"
   },
   "keywords": [
@@ -48,6 +63,7 @@
   },
   "dependencies": {
     "@noble/secp256k1": "^2.0.0",
+    "@weisyn/contract-sdk-js": "^0.1.0",
     "axios": "^1.6.0",
     "js-sha3": "^0.8.0",
     "tslib": "^2.8.1",

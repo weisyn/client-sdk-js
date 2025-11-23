@@ -34,6 +34,7 @@ export function supportsNodeCrypto(): boolean {
     return false;
   }
   try {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
     require('crypto');
     return true;
   } catch {
@@ -49,6 +50,7 @@ export function supportsFileSystem(): boolean {
     return false;
   }
   try {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
     require('fs');
     return true;
   } catch {

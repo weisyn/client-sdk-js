@@ -2,10 +2,17 @@
  * HTTP 客户端实现
  */
 
-import axios, { AxiosInstance } from 'axios';
+import axios, { AxiosInstance, AxiosError } from 'axios';
 import { IClient } from './client';
 import { ClientConfig, JSONRPCRequest, JSONRPCResponse, EventFilter, EventSubscription, SendTxResult } from './types';
 import { withRetry, RetryConfig } from '../utils/retry';
+import {
+  WesError,
+  WesProblemDetails,
+  parseProblemDetailsFromRPCError,
+  createDefaultWesError,
+  ErrorCode,
+} from '../types/wes-problem-details';
 
 /**
  * HTTP 客户端实现
@@ -18,8 +25,16 @@ export class HTTPClient implements IClient {
 
   constructor(config: ClientConfig) {
     this.config = config;
+    
+    // 处理 baseURL：如果 endpoint 包含 /jsonrpc，则移除它作为 baseURL
+    // 这样在 call 方法中可以使用相对路径 /jsonrpc
+    let baseURL = config.endpoint;
+    if (baseURL.includes('/jsonrpc')) {
+      baseURL = baseURL.replace(/\/jsonrpc\/?$/, '');
+    }
+    
     this.httpClient = axios.create({
-      baseURL: config.endpoint,
+      baseURL: baseURL,
       timeout: config.timeout || 30000,
       headers: {
         'Content-Type': 'application/json',
@@ -51,10 +66,8 @@ export class HTTPClient implements IClient {
 
     // 执行请求（带重试）
     const executeRequest = async () => {
-      // 如果 endpoint 包含路径，使用完整路径；否则使用默认路径
-      const url = this.config.endpoint.includes('/jsonrpc') 
-        ? this.config.endpoint 
-        : `${this.config.endpoint}/jsonrpc`;
+      // 始终使用相对路径 /jsonrpc，让 axios 自动拼接 baseURL
+      const url = '/jsonrpc';
       
       const response = await this.httpClient.post<JSONRPCResponse>(url, request);
       const data = response.data;
@@ -64,11 +77,29 @@ export class HTTPClient implements IClient {
       }
 
       if (data.error) {
-        const errorMsg = `JSON-RPC Error: ${data.error.message} (code: ${data.error.code})`;
-        if (this.config.debug && data.error.data) {
-          console.error('[HTTPClient] Error data:', data.error.data);
+        // 强制要求 JSON-RPC 错误的 data 字段必须包含 Problem Details
+        const problem = parseProblemDetailsFromRPCError(data.error);
+        
+        if (!problem) {
+          // 如果没有 Problem Details，记录错误并抛出异常
+          const errorMsg = `JSON-RPC error response missing Problem Details: ${JSON.stringify(data.error)}`;
+          if (this.config.debug) {
+            console.error('[HTTPClient] Missing Problem Details:', data.error);
+          }
+          throw new Error(errorMsg);
         }
-        throw new Error(errorMsg);
+        
+        // 使用 Problem Details 创建 WesError
+        const wesError = WesError.fromProblemDetails(problem);
+        if (this.config.debug) {
+          console.error('[HTTPClient] WES Error:', {
+            code: wesError.code,
+            layer: wesError.layer,
+            userMessage: wesError.userMessage,
+            traceId: wesError.traceId,
+          });
+        }
+        throw wesError;
       }
 
       return data.result;
@@ -96,14 +127,81 @@ export class HTTPClient implements IClient {
         console.error('[HTTPClient] Error:', error);
       }
       
-      // 处理网络错误
-      if (error.response) {
-        throw new Error(`HTTP Error: ${error.response.status} ${error.response.statusText}`);
-      } else if (error.request) {
-        throw new Error('Network Error: No response received from server');
-      } else {
+      // 如果已经是 WesError，直接抛出
+      if (WesError.isWesError(error)) {
         throw error;
       }
+      
+      // 处理 axios 错误
+      if (axios.isAxiosError(error)) {
+        const axiosError = error as AxiosError;
+        
+        // 强制要求 HTTP 错误响应必须是 Problem Details 格式
+        if (axiosError.response) {
+          const response = axiosError.response;
+          const contentType = response.headers['content-type'];
+          
+          // 检查是否是 Problem Details 响应
+          if (contentType && contentType.includes('application/problem+json')) {
+            try {
+              const problem = response.data as WesProblemDetails;
+              
+              // 验证必填字段
+              if (problem.code && problem.layer && problem.userMessage && problem.traceId) {
+                const wesError = WesError.fromProblemDetails(problem);
+                throw wesError;
+              }
+              
+              // 如果格式不正确，抛出异常
+              throw new Error(`Invalid Problem Details format: missing required fields`);
+            } catch (parseError) {
+              if (parseError instanceof WesError) {
+                throw parseError;
+              }
+              // 解析失败，抛出异常
+              throw new Error(`Failed to parse Problem Details: ${parseError}`);
+            }
+          } else {
+            // 如果不是 Problem Details 格式，抛出异常
+            throw new Error(
+              `HTTP error response is not Problem Details format. ` +
+              `Expected Content-Type: application/problem+json, ` +
+              `got: ${contentType || 'unknown'}. ` +
+              `Status: ${response.status} ${response.statusText}`
+            );
+          }
+        }
+        
+        // 网络错误（无响应）
+        if (axiosError.request) {
+          throw createDefaultWesError(
+            ErrorCode.SDK_CONNECTION_ERROR,
+            '无法连接到服务，请检查网络或联系管理员。',
+            'Network Error: No response received from server',
+            503,
+            {
+              url: axiosError.config?.url,
+              method: axiosError.config?.method,
+            }
+          );
+        }
+      }
+      
+      // 其他错误（超时等）
+      if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
+        throw createDefaultWesError(
+          ErrorCode.SDK_HTTP_ERROR,
+          '请求超时，请稍后重试。',
+          error.message || 'Request timeout',
+          408,
+          {
+            timeout: this.config.timeout,
+          }
+        );
+      }
+      
+      // 未知错误
+      throw error;
     }
   }
 
