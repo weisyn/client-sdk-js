@@ -1,7 +1,17 @@
+// Jest 配置
+// 注意：tests 目录在发布时会被排除，所以配置需要支持 tests 目录不存在的情况
+const fs = require('fs');
+const path = require('path');
+
+// 检查 tests 目录是否存在
+const testsDir = path.join(__dirname, 'tests');
+const hasTestsDir = fs.existsSync(testsDir);
+
 module.exports = {
   preset: 'ts-jest',
   testEnvironment: 'node',
-  roots: ['<rootDir>/src', '<rootDir>/tests'],
+  // 如果 tests 目录存在，使用它；否则只使用 src 目录
+  roots: hasTestsDir ? ['<rootDir>/src', '<rootDir>/tests'] : ['<rootDir>/src'],
   testMatch: ['**/__tests__/**/*.ts', '**/?(*.)+(spec|test).ts'],
   transform: {
     // TypeScript 文件使用 ts-jest
@@ -39,7 +49,8 @@ module.exports = {
   // 扩展名处理
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node', 'mjs'],
   // 注意：使用 Mock 方案后，不再需要自定义 resolver
-  setupFilesAfterEnv: ['<rootDir>/tests/setup.ts'],
+  // 如果 tests 目录存在，使用 setup.ts；否则跳过
+  setupFilesAfterEnv: hasTestsDir ? ['<rootDir>/tests/setup.ts'] : [],
   // 集成测试配置
   testTimeout: 60000, // 60秒超时（集成测试可能需要更长时间）
   // 可以通过环境变量跳过集成测试

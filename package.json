@@ -1,6 +1,6 @@
 {
   "name": "@weisyn/client-sdk-js",
-  "version": "0.1.1-alpha",
+  "version": "0.1.0-alpha",
   "description": "WES 区块链客户端开发工具包 - JavaScript/TypeScript 版本",
   "main": "dist/index.js",
   "module": "dist/index.esm.js",
@@ -31,7 +31,7 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
-    "test:unit": "jest --testPathIgnorePatterns=/integration/",
+    "test:unit": "jest --testPathIgnorePatterns=/integration/ --passWithNoTests --no-coverage",
     "test:integration": "jest tests/integration",
     "lint": "eslint src --ext .ts",
     "lint:fix": "eslint src --ext .ts --fix",
