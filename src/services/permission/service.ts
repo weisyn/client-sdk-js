@@ -1,30 +1,27 @@
 /**
  * Permission 服务实现
- * 
+ *
  * **架构说明**：
  * - Permission Service 提供资源权限管理功能，包括所有权转移、协作者管理、委托授权和时间/高度锁
  * - 基于现有的 tx_builder 实现，提供完整的服务层封装
  */
 
-import { IClient } from '../../client/client';
-import { Wallet } from '../../wallet/wallet';
-import { bytesToHex } from '../../utils/hex';
-import {
-  computeSignatureHashFromDraft,
-  finalizeTransactionFromDraft,
-} from '../../utils/tx_utils';
+import { IClient } from "../../client/client";
+import { Wallet } from "../../wallet/wallet";
+import { bytesToHex } from "../../utils/hex";
+import { computeSignatureHashFromDraft, finalizeTransactionFromDraft } from "../../utils/tx_utils";
 import {
   buildTransferOwnershipTx,
   buildUpdateCollaboratorsTx,
   buildGrantDelegationTx,
   buildSetLockTx,
-} from './tx_builder';
+} from "./tx_builder";
 import {
   TransferOwnershipIntent,
   UpdateCollaboratorsIntent,
   GrantDelegationIntent,
   SetTimeOrHeightLockIntent,
-} from './types';
+} from "./types";
 
 /**
  * TransactionResult 交易结果
@@ -53,12 +50,12 @@ export class PermissionService {
     if (this.wallet) {
       return this.wallet;
     }
-    throw new Error('Wallet is required');
+    throw new Error("Wallet is required");
   }
 
   /**
    * 签名并提交交易（通用流程）
-   * 
+   *
    * **流程**：
    * 1. 调用 wes_computeSignatureHashFromDraft 获取签名哈希
    * 2. 使用 Wallet 签名哈希
@@ -77,7 +74,7 @@ export class PermissionService {
       this.client,
       draft,
       inputIndex,
-      'SIGHASH_ALL'
+      "SIGHASH_ALL"
     );
 
     // 2. 使用 Wallet 签名哈希
@@ -88,14 +85,14 @@ export class PermissionService {
     let pubkeyCompressed: Uint8Array;
     if (publicKey.length === 65) {
       // 未压缩公钥，需要压缩
-      if (typeof require !== 'undefined') {
+      if (typeof require !== "undefined") {
         // eslint-disable-next-line @typescript-eslint/no-var-requires
-        const { Point } = require('@noble/secp256k1');
+        const { Point } = require("@noble/secp256k1");
         const point = Point.fromHex(bytesToHex(publicKey.slice(1)));
         pubkeyCompressed = point.toRawBytes(true);
       } else {
         // ES module 环境
-        const { Point } = await import('@noble/secp256k1');
+        const { Point } = await import("@noble/secp256k1");
         const point = Point.fromHex(bytesToHex(publicKey.slice(1)));
         pubkeyCompressed = point.toRawBytes(true);
       }
@@ -110,16 +107,16 @@ export class PermissionService {
       draft,
       unsignedTx: unsignedTxHex,
       input_index: inputIndex,
-      sighash_type: 'SIGHASH_ALL',
-      pubkey: '0x' + bytesToHex(pubkeyCompressed),
-      signature: '0x' + bytesToHex(signature),
+      sighash_type: "SIGHASH_ALL",
+      pubkey: "0x" + bytesToHex(pubkeyCompressed),
+      signature: "0x" + bytesToHex(signature),
     });
 
     // 5. 提交交易
     const sendResult = await this.client.sendRawTransaction(signedTxHex);
 
     if (!sendResult.accepted) {
-      throw new Error(`Transaction rejected: ${sendResult.reason || 'Unknown reason'}`);
+      throw new Error(`Transaction rejected: ${sendResult.reason || "Unknown reason"}`);
     }
 
     return {
@@ -130,7 +127,7 @@ export class PermissionService {
 
   /**
    * 转移所有权
-   * 
+   *
    * **流程**：
    * 1. 验证请求参数
    * 2. 获取 Wallet
@@ -143,7 +140,7 @@ export class PermissionService {
   ): Promise<TransactionResult> {
     // 1. 参数验证
     if (!intent.resourceId || !intent.newOwnerAddress) {
-      throw new Error('resourceId and newOwnerAddress are required');
+      throw new Error("resourceId and newOwnerAddress are required");
     }
 
     // 2. 获取 Wallet
@@ -158,7 +155,7 @@ export class PermissionService {
 
   /**
    * 更新协作者
-   * 
+   *
    * **流程**：
    * 1. 验证请求参数
    * 2. 获取 Wallet
@@ -171,13 +168,13 @@ export class PermissionService {
   ): Promise<TransactionResult> {
     // 1. 参数验证
     if (!intent.resourceId) {
-      throw new Error('resourceId is required');
+      throw new Error("resourceId is required");
     }
     if (!intent.collaborators || intent.collaborators.length === 0) {
-      throw new Error('at least one collaborator is required');
+      throw new Error("at least one collaborator is required");
     }
     if (intent.requiredSignatures <= 0 || intent.requiredSignatures > intent.collaborators.length) {
-      throw new Error('requiredSignatures must be between 1 and the number of collaborators');
+      throw new Error("requiredSignatures must be between 1 and the number of collaborators");
     }
 
     // 2. 获取 Wallet
@@ -192,7 +189,7 @@ export class PermissionService {
 
   /**
    * 授予委托授权
-   * 
+   *
    * **流程**：
    * 1. 验证请求参数
    * 2. 获取 Wallet
@@ -205,13 +202,13 @@ export class PermissionService {
   ): Promise<TransactionResult> {
     // 1. 参数验证
     if (!intent.resourceId || !intent.delegateAddress) {
-      throw new Error('resourceId and delegateAddress are required');
+      throw new Error("resourceId and delegateAddress are required");
     }
     if (!intent.operations || intent.operations.length === 0) {
-      throw new Error('at least one operation is required');
+      throw new Error("at least one operation is required");
     }
     if (intent.expiryBlocks <= 0) {
-      throw new Error('expiryBlocks must be greater than 0');
+      throw new Error("expiryBlocks must be greater than 0");
     }
 
     // 2. 获取 Wallet
@@ -226,7 +223,7 @@ export class PermissionService {
 
   /**
    * 设置时间/高度锁
-   * 
+   *
    * **流程**：
    * 1. 验证请求参数
    * 2. 获取 Wallet
@@ -239,16 +236,16 @@ export class PermissionService {
   ): Promise<TransactionResult> {
     // 1. 参数验证
     if (!intent.resourceId) {
-      throw new Error('resourceId is required');
+      throw new Error("resourceId is required");
     }
     if (!intent.unlockTimestamp && !intent.unlockHeight) {
-      throw new Error('either unlockTimestamp or unlockHeight must be provided');
+      throw new Error("either unlockTimestamp or unlockHeight must be provided");
     }
     if (intent.unlockTimestamp && intent.unlockTimestamp <= 0) {
-      throw new Error('unlockTimestamp must be greater than 0');
+      throw new Error("unlockTimestamp must be greater than 0");
     }
     if (intent.unlockHeight && intent.unlockHeight <= 0) {
-      throw new Error('unlockHeight must be greater than 0');
+      throw new Error("unlockHeight must be greater than 0");
     }
 
     // 2. 获取 Wallet
@@ -261,4 +258,3 @@ export class PermissionService {
     return await this.signAndSubmitTransaction(unsignedTx, w);
   }
 }
-

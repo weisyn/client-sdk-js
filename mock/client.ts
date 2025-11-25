@@ -9,7 +9,7 @@
 // rollup 的 TypeScript 插件应该能够正确处理这些类型导入
 import type { WESClient } from '../src/client/wesclient';
 import type {
-  OutPoint,
+  // OutPoint, // 未使用，暂时注释
   UTXO,
   ResourceInfo,
   ResourceFilters,

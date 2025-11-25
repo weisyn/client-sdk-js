@@ -2,12 +2,12 @@
  * Client 类型定义
  */
 
-import type { RetryConfig } from '../utils/retry';
+import type { RetryConfig } from "../utils/retry";
 
 /**
  * 传输协议类型
  */
-export type Protocol = 'http' | 'websocket';
+export type Protocol = "http" | "websocket";
 
 /**
  * 客户端配置
@@ -31,7 +31,7 @@ export interface ClientConfig {
  * JSON-RPC 请求
  */
 export interface JSONRPCRequest {
-  jsonrpc: '2.0';
+  jsonrpc: "2.0";
   method: string;
   params: any[];
   id: number | string;
@@ -41,7 +41,7 @@ export interface JSONRPCRequest {
  * JSON-RPC 响应
  */
 export interface JSONRPCResponse<T = any> {
-  jsonrpc: '2.0';
+  jsonrpc: "2.0";
   result?: T;
   error?: JSONRPCError;
   id: number | string;
@@ -59,7 +59,7 @@ export interface JSONRPCError {
 /**
  * 订阅类型
  */
-export type SubscriptionType = 'newHeads' | 'logs' | 'newPendingTxs' | 'syncing';
+export type SubscriptionType = "newHeads" | "logs" | "newPendingTxs" | "syncing";
 
 /**
  * 事件过滤器（用于合约事件订阅）
@@ -99,7 +99,7 @@ export interface EventSubscription {
   /** 订阅 ID */
   id: string;
   /** 监听事件 */
-  on(event: 'event', callback: (event: Event) => void): void;
+  on(event: "event", callback: (event: Event) => void): void;
   /** 取消订阅 */
   unsubscribe(): Promise<void>;
 }
@@ -115,4 +115,3 @@ export interface SendTxResult {
   /** 拒绝原因（如果被拒绝） */
   reason?: string;
 }
-

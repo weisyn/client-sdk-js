@@ -1,6 +1,6 @@
 /**
  * 权限交易构建器类型定义
- * 
+ *
  * 定义权限变更操作的 Intent DTO 和交易构建结果
  */
 
@@ -8,8 +8,8 @@
  * 所有权转移意图
  */
 export interface TransferOwnershipIntent {
-  resourceId: string;          // txId:outputIndex
-  newOwnerAddress: string;     // Base58 地址或 hex 地址
+  resourceId: string; // txId:outputIndex
+  newOwnerAddress: string; // Base58 地址或 hex 地址
   memo?: string;
 }
 
@@ -18,8 +18,8 @@ export interface TransferOwnershipIntent {
  */
 export interface UpdateCollaboratorsIntent {
   resourceId: string;
-  requiredSignatures: number;     // M
-  collaborators: string[];        // 授权地址列表（Base58 或 hex）
+  requiredSignatures: number; // M
+  collaborators: string[]; // 授权地址列表（Base58 或 hex）
 }
 
 /**
@@ -38,15 +38,14 @@ export interface GrantDelegationIntent {
  */
 export interface SetTimeOrHeightLockIntent {
   resourceId: string;
-  unlockTimestamp?: number;    // Unix 秒
-  unlockHeight?: number;       // 区块高度
+  unlockTimestamp?: number; // Unix 秒
+  unlockHeight?: number; // 区块高度
 }
 
 /**
  * 未签名交易（包含 draft 和签名信息）
  */
 export interface UnsignedTransaction {
-  draft: object;              // 交易草稿（用于签名）
-  inputIndex: number;         // 需要签名的输入索引
+  draft: object; // 交易草稿（用于签名）
+  inputIndex: number; // 需要签名的输入索引
 }
-

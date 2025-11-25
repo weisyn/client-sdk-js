@@ -2,29 +2,36 @@
  * WebSocket 客户端实现
  */
 
-import { IClient } from './client';
-import { ClientConfig, JSONRPCRequest, EventSubscription, Event, SendTxResult, SubscribeParams } from './types';
-import { bytesToHex, hexToBytes } from '../utils/hex';
+import { IClient } from "./client";
+import {
+  ClientConfig,
+  JSONRPCRequest,
+  EventSubscription,
+  Event,
+  SendTxResult,
+  SubscribeParams,
+} from "./types";
+import { bytesToHex, hexToBytes } from "../utils/hex";
 
 // 检测运行环境并选择合适的 WebSocket 实现
 let WebSocketImpl: any;
-if (typeof window !== 'undefined' && window.WebSocket) {
+if (typeof window !== "undefined" && window.WebSocket) {
   // 浏览器环境：使用原生 WebSocket
   WebSocketImpl = window.WebSocket;
-} else if (typeof global !== 'undefined') {
+} else if (typeof global !== "undefined") {
   // Node.js 环境：使用 ws 包
-  if (typeof require !== 'undefined') {
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    WebSocketImpl = require('ws');
-  } catch (e) {
-    throw new Error('WebSocket is not available. In Node.js, please install the "ws" package.');
+  if (typeof require !== "undefined") {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      WebSocketImpl = require("ws");
+    } catch (e) {
+      throw new Error('WebSocket is not available. In Node.js, please install the "ws" package.');
     }
   } else {
-    throw new Error('require is not available. WebSocket requires Node.js environment.');
+    throw new Error("require is not available. WebSocket requires Node.js environment.");
   }
 } else {
-  throw new Error('WebSocket is not available in this environment');
+  throw new Error("WebSocket is not available in this environment");
 }
 
 /**
@@ -32,9 +39,13 @@ if (typeof window !== 'undefined' && window.WebSocket) {
  */
 export class WebSocketClient implements IClient {
   private config: ClientConfig;
-  private ws: any | null = null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private ws: any = null;
   private requestIdCounter: number = 0;
-  private pendingRequests: Map<number | string, { resolve: (value: any) => void; reject: (error: Error) => void }> = new Map();
+  private pendingRequests: Map<
+    number | string,
+    { resolve: (value: any) => void; reject: (error: Error) => void }
+  > = new Map();
   private subscriptions: Map<string, EventSubscription> = new Map();
 
   constructor(config: ClientConfig) {
@@ -54,62 +65,62 @@ export class WebSocketClient implements IClient {
         this.ws = new WebSocketImpl(this.config.endpoint);
 
         // 浏览器环境：使用 addEventListener
-        if (typeof window !== 'undefined' && this.ws instanceof window.WebSocket) {
-          this.ws.addEventListener('open', () => {
+        if (typeof window !== "undefined" && this.ws instanceof window.WebSocket) {
+          this.ws.addEventListener("open", () => {
             if (this.config.debug) {
-              console.log('[WebSocketClient] Connected');
+              console.log("[WebSocketClient] Connected");
             }
             resolve();
           });
 
-          this.ws.addEventListener('message', (event: MessageEvent) => {
+          this.ws.addEventListener("message", (event: MessageEvent) => {
             this.handleMessage(event.data);
           });
 
-          this.ws.addEventListener('error', (evt: globalThis.Event) => {
+          this.ws.addEventListener("error", (evt: globalThis.Event) => {
             if (this.config.debug) {
-              console.error('[WebSocketClient] Error:', evt);
+              console.error("[WebSocketClient] Error:", evt);
             }
-            reject(new Error('WebSocket connection error'));
+            reject(new Error("WebSocket connection error"));
           });
 
-          this.ws.addEventListener('close', () => {
+          this.ws.addEventListener("close", () => {
             if (this.config.debug) {
-              console.log('[WebSocketClient] Closed');
+              console.log("[WebSocketClient] Closed");
             }
             // 清理所有待处理的请求
             for (const [, { reject }] of this.pendingRequests) {
-              reject(new Error('WebSocket connection closed'));
+              reject(new Error("WebSocket connection closed"));
             }
             this.pendingRequests.clear();
           });
         } else {
           // Node.js 环境：使用 ws 包的事件监听器
-          this.ws.on('open', () => {
+          this.ws.on("open", () => {
             if (this.config.debug) {
-              console.log('[WebSocketClient] Connected');
+              console.log("[WebSocketClient] Connected");
             }
             resolve();
           });
 
-          this.ws.on('message', (data: any) => {
+          this.ws.on("message", (data: any) => {
             this.handleMessage(data.toString());
           });
 
-          this.ws.on('error', (error: Error) => {
+          this.ws.on("error", (error: Error) => {
             if (this.config.debug) {
-              console.error('[WebSocketClient] Error:', error);
+              console.error("[WebSocketClient] Error:", error);
             }
             reject(error);
           });
 
-          this.ws.on('close', () => {
+          this.ws.on("close", () => {
             if (this.config.debug) {
-              console.log('[WebSocketClient] Closed');
+              console.log("[WebSocketClient] Closed");
             }
             // 清理所有待处理的请求
             for (const [, { reject }] of this.pendingRequests) {
-              reject(new Error('WebSocket connection closed'));
+              reject(new Error("WebSocket connection closed"));
             }
             this.pendingRequests.clear();
           });
@@ -128,7 +139,7 @@ export class WebSocketClient implements IClient {
       const data: any = JSON.parse(message);
 
       // 处理订阅事件通知（wes_subscription）
-      if (data.method === 'wes_subscription' && data.params) {
+      if (data.method === "wes_subscription" && data.params) {
         const params = data.params;
         const subscriptionId = params.subscription;
         const eventData = params.result;
@@ -145,7 +156,10 @@ export class WebSocketClient implements IClient {
         }
 
         if (this.config.debug) {
-          console.warn('[WebSocketClient] Received event for unknown subscription:', subscriptionId);
+          console.warn(
+            "[WebSocketClient] Received event for unknown subscription:",
+            subscriptionId
+          );
         }
         return;
       }
@@ -156,7 +170,9 @@ export class WebSocketClient implements IClient {
         if (pending) {
           this.pendingRequests.delete(data.id);
           if (data.error) {
-            pending.reject(new Error(`JSON-RPC Error: ${data.error.message} (code: ${data.error.code})`));
+            pending.reject(
+              new Error(`JSON-RPC Error: ${data.error.message} (code: ${data.error.code})`)
+            );
           } else {
             pending.resolve(data.result);
           }
@@ -164,7 +180,7 @@ export class WebSocketClient implements IClient {
       }
     } catch (error) {
       if (this.config.debug) {
-        console.error('[WebSocketClient] Failed to parse message:', error);
+        console.error("[WebSocketClient] Failed to parse message:", error);
       }
     }
   }
@@ -174,15 +190,17 @@ export class WebSocketClient implements IClient {
    */
   private triggerSubscriptionCallbacks(subscriptionId: string, eventData: any): void {
     // 查找订阅并触发回调
-    const subscription = Array.from(this.subscriptions.values()).find(sub => sub.id === subscriptionId);
+    const subscription = Array.from(this.subscriptions.values()).find(
+      (sub) => sub.id === subscriptionId
+    );
     if (subscription && (subscription as any).callbacks) {
       const callbacks = (subscription as any).callbacks as Array<(event: Event) => void>;
-      
+
       // 根据事件类型构建 Event 对象
       // 对于 newHeads 事件，eventData 是 NewHeadEvent 结构
       // 对于 logs 事件，eventData 是 LogsEvent 结构
       const event: Event = {
-        topic: eventData.topic || eventData.type || '',
+        topic: eventData.topic || eventData.type || "",
         data: eventData.data ? hexToBytes(eventData.data) : new Uint8Array(),
         blockHeight: eventData.blockHeight || eventData.height,
         txHash: eventData.txHash || eventData.hash,
@@ -196,12 +214,12 @@ export class WebSocketClient implements IClient {
         ...eventData, // 包含所有原始字段（removed, reorgId, resumeToken 等）
       };
 
-      callbacks.forEach(callback => {
+      callbacks.forEach((callback) => {
         try {
           callback(enrichedEvent as Event);
         } catch (error) {
           if (this.config.debug) {
-            console.error('[WebSocketClient] Event callback error:', error);
+            console.error("[WebSocketClient] Event callback error:", error);
           }
         }
       });
@@ -216,14 +234,14 @@ export class WebSocketClient implements IClient {
 
     const requestId = ++this.requestIdCounter;
     const request: JSONRPCRequest = {
-      jsonrpc: '2.0',
+      jsonrpc: "2.0",
       method,
       params: Array.isArray(params) ? params : [params],
       id: requestId,
     };
 
     if (this.config.debug) {
-      console.log('[WebSocketClient] Request:', JSON.stringify(request, null, 2));
+      console.log("[WebSocketClient] Request:", JSON.stringify(request, null, 2));
     }
 
     return new Promise((resolve, reject) => {
@@ -232,7 +250,7 @@ export class WebSocketClient implements IClient {
       if (this.ws) {
         this.ws.send(JSON.stringify(request));
       } else {
-        reject(new Error('WebSocket is not connected'));
+        reject(new Error("WebSocket is not connected"));
       }
     });
   }
@@ -241,7 +259,7 @@ export class WebSocketClient implements IClient {
    * 发送已签名的原始交易
    */
   async sendRawTransaction(signedTxHex: string): Promise<SendTxResult> {
-    const result = await this.call('wes_sendRawTransaction', [signedTxHex]);
+    const result = await this.call("wes_sendRawTransaction", [signedTxHex]);
     return {
       txHash: result.tx_hash || result.txHash,
       accepted: result.accepted !== false,
@@ -251,11 +269,11 @@ export class WebSocketClient implements IClient {
 
   /**
    * 订阅事件
-   * 
+   *
    * **支持两种订阅方式**：
    * 1. 订阅类型字符串：'newHeads', 'logs', 'newPendingTxs', 'syncing'
    * 2. 事件过滤器：用于合约事件订阅（topics, from, to）
-   * 
+   *
    * **流程**：
    * 1. 调用 `wes_subscribe` JSON-RPC 方法
    * 2. 创建事件订阅对象
@@ -265,11 +283,11 @@ export class WebSocketClient implements IClient {
     await this.ensureConnected();
 
     const localSubscriptionId = `sub_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    
+
     // 1. 构建订阅参数
     let subscribeArgs: any[];
-    
-    if (typeof params === 'string') {
+
+    if (typeof params === "string") {
       // 订阅类型字符串（如 'newHeads'）
       subscribeArgs = [params];
     } else {
@@ -288,29 +306,29 @@ export class WebSocketClient implements IClient {
     }
 
     // 2. 调用 wes_subscribe JSON-RPC 方法
-    const result = await this.call('wes_subscribe', subscribeArgs);
-    
-    if (!result || typeof result !== 'string') {
-      throw new Error('Invalid subscribe response format');
+    const result = await this.call("wes_subscribe", subscribeArgs);
+
+    if (!result || typeof result !== "string") {
+      throw new Error("Invalid subscribe response format");
     }
 
     const actualSubscriptionId = result; // 节点返回的订阅ID
 
     // 3. 创建事件订阅对象
     const eventCallbacks: Array<(event: Event) => void> = [];
-    
+
     const subscription: EventSubscription & { callbacks: Array<(event: Event) => void> } = {
       id: actualSubscriptionId,
       callbacks: eventCallbacks,
-      on: (eventType: 'event', callback: (event: Event) => void) => {
-        if (eventType === 'event') {
+      on: (eventType: "event", callback: (event: Event) => void) => {
+        if (eventType === "event") {
           eventCallbacks.push(callback);
         }
       },
       unsubscribe: async () => {
         // 调用 wes_unsubscribe 取消订阅
         try {
-          await this.call('wes_unsubscribe', [actualSubscriptionId]);
+          await this.call("wes_unsubscribe", [actualSubscriptionId]);
         } catch (error) {
           // 忽略取消订阅错误
         }
@@ -320,7 +338,7 @@ export class WebSocketClient implements IClient {
 
     // 4. 保存订阅
     this.subscriptions.set(localSubscriptionId, subscription);
-    
+
     return subscription;
   }
 
@@ -341,4 +359,3 @@ export class WebSocketClient implements IClient {
     }
   }
 }
-

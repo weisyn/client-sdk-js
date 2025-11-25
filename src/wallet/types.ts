@@ -49,4 +49,3 @@ export interface KeystoreData {
   /** 地址 */
   address: string;
 }
-

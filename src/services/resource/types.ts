@@ -42,13 +42,13 @@ export interface DeployContractRequest {
   contractName: string;
   /** 初始化参数 */
   initArgs?: Uint8Array;
-  
+
   /** ✅ 新增：锁定条件列表（支持 7 种类型） */
-  lockingConditions?: import('./locking').LockingCondition[];
-  
+  lockingConditions?: import("./locking").LockingCondition[];
+
   /** ✅ 新增：锁定条件验证选项 */
-  validateLockingConditions?: boolean;  // 是否在SDK层验证（默认true）
-  allowContractLockCycles?: boolean;     // 是否允许ContractLock循环（默认false）
+  validateLockingConditions?: boolean; // 是否在SDK层验证（默认true）
+  allowContractLockCycles?: boolean; // 是否允许ContractLock循环（默认false）
 }
 
 /**
@@ -101,7 +101,7 @@ export interface ResourceInfo {
   /** 内容哈希 */
   contentHash: string;
   /** 资源类型（static/contract/aimodel） */
-  type: 'static' | 'contract' | 'aimodel';
+  type: "static" | "contract" | "aimodel";
   /** 文件大小 */
   size: number;
   /** MIME类型 */
@@ -135,8 +135,8 @@ export interface ResourceView {
   contentHash: string;
 
   /** 资源分类 */
-  category: 'EXECUTABLE' | 'STATIC';
-  executableType?: 'CONTRACT' | 'AI_MODEL';
+  category: "EXECUTABLE" | "STATIC";
+  executableType?: "CONTRACT" | "AI_MODEL";
 
   /** 资源元信息 */
   mimeType?: string;
@@ -145,7 +145,7 @@ export interface ResourceView {
   /** UTXO 视角 */
   outPoint?: OutPoint;
   owner: string;
-  status: 'ACTIVE' | 'CONSUMED' | 'EXPIRED';
+  status: "ACTIVE" | "CONSUMED" | "EXPIRED";
   creationTimestamp: number;
   expiryTimestamp?: number;
   isImmutable: boolean;

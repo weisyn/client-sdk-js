@@ -1,6 +1,6 @@
 /**
  * 大文件处理工具
- * 
+ *
  * 提供流式处理和分块上传功能，优化大文件处理性能
  */
 
@@ -35,7 +35,7 @@ export interface FileProgress {
 /**
  * 默认分块配置
  */
-const DEFAULT_CHUNK_CONFIG: Required<Omit<ChunkConfig, 'onProgress'>> = {
+const DEFAULT_CHUNK_CONFIG: Required<Omit<ChunkConfig, "onProgress">> = {
   chunkSize: 1024 * 1024, // 1MB
   concurrency: 3, // 并发3个分块
 };
@@ -74,7 +74,7 @@ async function processChunksConcurrently<T>(
       const result = await processor(chunk, index);
       results[index] = result;
       completed++;
-      
+
       if (onProgress) {
         onProgress({
           loaded: completed * chunk.length,
@@ -122,7 +122,7 @@ export async function readFileAsStream(
 
       const chunk = new Uint8Array(value);
       chunks.push(chunk);
-      
+
       if (onChunk) {
         onChunk(chunk, index++);
       }
@@ -145,7 +145,7 @@ export async function readFileAsStream(
 
 /**
  * 分块处理文件
- * 
+ *
  * @param data 文件数据
  * @param processor 处理函数
  * @param config 配置
@@ -192,4 +192,3 @@ export function estimateProcessingTime(
   const estimatedTime = fileSize / processingSpeed;
   return estimatedTime;
 }
-

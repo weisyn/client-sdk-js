@@ -6,9 +6,12 @@
  * SDK 错误基类
  */
 export class SDKError extends Error {
-  constructor(message: string, public code?: string) {
+  constructor(
+    message: string,
+    public code?: string
+  ) {
     super(message);
-    this.name = 'SDKError';
+    this.name = "SDKError";
   }
 }
 
@@ -16,9 +19,12 @@ export class SDKError extends Error {
  * 网络错误
  */
 export class NetworkError extends SDKError {
-  constructor(message: string, public statusCode?: number) {
-    super(message, 'NETWORK_ERROR');
-    this.name = 'NetworkError';
+  constructor(
+    message: string,
+    public statusCode?: number
+  ) {
+    super(message, "NETWORK_ERROR");
+    this.name = "NetworkError";
   }
 }
 
@@ -26,9 +32,13 @@ export class NetworkError extends SDKError {
  * JSON-RPC 错误
  */
 export class JSONRPCError extends SDKError {
-  constructor(message: string, public rpcCode: number, public rpcData?: unknown) {
-    super(message, 'JSONRPC_ERROR');
-    this.name = 'JSONRPCError';
+  constructor(
+    message: string,
+    public rpcCode: number,
+    public rpcData?: unknown
+  ) {
+    super(message, "JSONRPC_ERROR");
+    this.name = "JSONRPCError";
   }
 }
 
@@ -36,9 +46,12 @@ export class JSONRPCError extends SDKError {
  * 交易错误
  */
 export class TransactionError extends SDKError {
-  constructor(message: string, public txHash?: string) {
-    super(message, 'TRANSACTION_ERROR');
-    this.name = 'TransactionError';
+  constructor(
+    message: string,
+    public txHash?: string
+  ) {
+    super(message, "TRANSACTION_ERROR");
+    this.name = "TransactionError";
   }
 }
 
@@ -47,8 +60,8 @@ export class TransactionError extends SDKError {
  */
 export class WalletError extends SDKError {
   constructor(message: string) {
-    super(message, 'WALLET_ERROR');
-    this.name = 'WalletError';
+    super(message, "WALLET_ERROR");
+    this.name = "WalletError";
   }
 }
 
@@ -56,9 +69,12 @@ export class WalletError extends SDKError {
  * 参数验证错误
  */
 export class ValidationError extends SDKError {
-  constructor(message: string, public field?: string) {
-    super(message, 'VALIDATION_ERROR');
-    this.name = 'ValidationError';
+  constructor(
+    message: string,
+    public field?: string
+  ) {
+    super(message, "VALIDATION_ERROR");
+    this.name = "ValidationError";
   }
 }
 
@@ -69,10 +85,9 @@ export class BrowserCompatibilityError extends SDKError {
   constructor(
     message: string,
     public feature: string,
-    public environment: 'node' | 'browser' | 'unknown'
+    public environment: "node" | "browser" | "unknown"
   ) {
-    super(message, 'BROWSER_COMPATIBILITY_ERROR');
-    this.name = 'BrowserCompatibilityError';
+    super(message, "BROWSER_COMPATIBILITY_ERROR");
+    this.name = "BrowserCompatibilityError";
   }
 }
-

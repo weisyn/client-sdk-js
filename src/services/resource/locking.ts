@@ -1,6 +1,6 @@
 /**
  * 锁定条件类型定义和转换逻辑
- * 
+ *
  * 支持 7 种锁定条件：
  * - SingleKeyLock: 单密钥锁定
  * - MultiKeyLock: 多密钥锁定
@@ -9,7 +9,7 @@
  * - ThresholdLock: 门限签名锁定
  * - TimeLock: 时间锁定
  * - HeightLock: 高度锁定
- * 
+ *
  * 详见：workbench/_dev/EXECUTABLE_RESOURCE_LOCKING_DESIGN.md
  */
 
@@ -17,13 +17,13 @@
  * 锁定条件类型
  */
 export type LockingConditionType =
-  | 'singleKey'
-  | 'multiKey'
-  | 'contract'
-  | 'delegation'
-  | 'threshold'
-  | 'timeLock'
-  | 'heightLock';
+  | "singleKey"
+  | "multiKey"
+  | "contract"
+  | "delegation"
+  | "threshold"
+  | "timeLock"
+  | "heightLock";
 
 /**
  * 基础锁定条件接口
@@ -36,18 +36,18 @@ export interface BaseLockingCondition {
  * 单密钥锁定条件
  */
 export interface SingleKeyLockCondition extends BaseLockingCondition {
-  type: 'singleKey';
-  requiredAddressHash: Uint8Array;  // 20字节地址哈希
-  algorithm?: 'ECDSA_SECP256K1' | 'ED25519';
+  type: "singleKey";
+  requiredAddressHash: Uint8Array; // 20字节地址哈希
+  algorithm?: "ECDSA_SECP256K1" | "ED25519";
 }
 
 /**
  * 多密钥锁定条件
  */
 export interface MultiKeyLockCondition extends BaseLockingCondition {
-  type: 'multiKey';
-  requiredSignatures: number;        // M
-  authorizedKeys: PublicKey[];       // N个公钥
+  type: "multiKey";
+  requiredSignatures: number; // M
+  authorizedKeys: PublicKey[]; // N个公钥
   requireOrderedSignatures?: boolean;
 }
 
@@ -56,25 +56,25 @@ export interface MultiKeyLockCondition extends BaseLockingCondition {
  */
 export interface PublicKey {
   value: Uint8Array;
-  algorithm?: 'ECDSA_SECP256K1' | 'ED25519';
+  algorithm?: "ECDSA_SECP256K1" | "ED25519";
 }
 
 /**
  * 时间锁定条件
  */
 export interface TimeLockCondition extends BaseLockingCondition {
-  type: 'timeLock';
-  unlockTimestamp: number;           // Unix秒
-  baseLock: LockingCondition;        // 基础锁定条件
+  type: "timeLock";
+  unlockTimestamp: number; // Unix秒
+  baseLock: LockingCondition; // 基础锁定条件
 }
 
 /**
  * 高度锁定条件
  */
 export interface HeightLockCondition extends BaseLockingCondition {
-  type: 'heightLock';
-  unlockHeight: number;              // 区块高度
-  baseLock: LockingCondition;        // 基础锁定条件
+  type: "heightLock";
+  unlockHeight: number; // 区块高度
+  baseLock: LockingCondition; // 基础锁定条件
   confirmationBlocks?: number;
 }
 
@@ -82,11 +82,11 @@ export interface HeightLockCondition extends BaseLockingCondition {
  * 委托锁定条件
  */
 export interface DelegationLockCondition extends BaseLockingCondition {
-  type: 'delegation';
-  originalOwner: Uint8Array;         // 原始所有者地址
-  allowedDelegates: Uint8Array[];    // 被委托者列表
-  authorizedOperations: string[];     // ['reference', 'consume', 'execute']
-  expiryDurationBlocks?: number;      // 有效期（区块数，0=永不过期）
+  type: "delegation";
+  originalOwner: Uint8Array; // 原始所有者地址
+  allowedDelegates: Uint8Array[]; // 被委托者列表
+  authorizedOperations: string[]; // ['reference', 'consume', 'execute']
+  expiryDurationBlocks?: number; // 有效期（区块数，0=永不过期）
   maxValuePerOperation?: number;
 }
 
@@ -94,11 +94,11 @@ export interface DelegationLockCondition extends BaseLockingCondition {
  * 合约锁定条件（L1层：资源所有权控制）
  */
 export interface ContractLockCondition extends BaseLockingCondition {
-  type: 'contract';
-  contractAddress: Uint8Array;        // 治理合约地址
-  requiredMethod: string;             // 要求调用的方法名
-  parameterSchema?: string;           // 参数类型定义
-  stateRequirements?: string[];       // 状态要求
+  type: "contract";
+  contractAddress: Uint8Array; // 治理合约地址
+  requiredMethod: string; // 要求调用的方法名
+  parameterSchema?: string; // 参数类型定义
+  stateRequirements?: string[]; // 状态要求
   maxExecutionTimeMs?: number;
 }
 
@@ -106,11 +106,11 @@ export interface ContractLockCondition extends BaseLockingCondition {
  * 门限签名锁定条件
  */
 export interface ThresholdLockCondition extends BaseLockingCondition {
-  type: 'threshold';
-  threshold: number;                  // 门限值
-  totalParties: number;               // 总参与方数
+  type: "threshold";
+  threshold: number; // 门限值
+  totalParties: number; // 总参与方数
   partyVerificationKeys: Uint8Array[]; // 参与方验证密钥
-  signatureScheme?: string;           // 'BLS_THRESHOLD'
+  signatureScheme?: string; // 'BLS_THRESHOLD'
 }
 
 /**
@@ -128,82 +128,82 @@ export type LockingCondition =
 /**
  * 将 Host ABI 层的 LockingCondition 转换为 proto 格式（JSON-RPC 友好）
  */
-export function convertLockingConditionsToProto(
-  conditions: LockingCondition[]
-): any[] {
-  return conditions.map(condition => {
+export function convertLockingConditionsToProto(conditions: LockingCondition[]): any[] {
+  return conditions.map((condition) => {
     switch (condition.type) {
-      case 'singleKey':
+      case "singleKey":
         return {
-          type: 'singleKey', // ✅ 添加 type 字段，节点端需要
+          type: "singleKey", // ✅ 添加 type 字段，节点端需要
           single_key_lock: {
             required_address_hash: uint8ArrayToHex(condition.requiredAddressHash),
-            required_algorithm: condition.algorithm || 'ECDSA_SECP256K1',
-            sighash_type: 'SIGHASH_ALL',
+            required_algorithm: condition.algorithm || "ECDSA_SECP256K1",
+            sighash_type: "SIGHASH_ALL",
           },
         };
-      case 'multiKey':
+      case "multiKey":
         return {
-          type: 'multiKey', // ✅ 添加 type 字段
+          type: "multiKey", // ✅ 添加 type 字段
           multi_key_lock: {
             required_signatures: condition.requiredSignatures,
-            authorized_keys: condition.authorizedKeys.map(k => ({
+            authorized_keys: condition.authorizedKeys.map((k) => ({
               value: uint8ArrayToHex(k.value),
-              algorithm: k.algorithm || 'ECDSA_SECP256K1',
+              algorithm: k.algorithm || "ECDSA_SECP256K1",
             })),
-            required_algorithm: 'ECDSA_SECP256K1',
+            required_algorithm: "ECDSA_SECP256K1",
             require_ordered_signatures: condition.requireOrderedSignatures ?? false,
-            sighash_type: 'SIGHASH_ALL',
+            sighash_type: "SIGHASH_ALL",
           },
         };
-      case 'timeLock':
+      case "timeLock":
         return {
-          type: 'timeLock', // ✅ 添加 type 字段
+          type: "timeLock", // ✅ 添加 type 字段
           time_lock: {
             unlock_timestamp: condition.unlockTimestamp,
             base_lock: convertLockingConditionsToProto([condition.baseLock])[0],
-            time_source: 'TIME_SOURCE_BLOCK_TIMESTAMP',
+            time_source: "TIME_SOURCE_BLOCK_TIMESTAMP",
           },
         };
-      case 'heightLock':
+      case "heightLock":
         return {
-          type: 'heightLock', // ✅ 添加 type 字段
+          type: "heightLock", // ✅ 添加 type 字段
           height_lock: {
             unlock_height: condition.unlockHeight,
             base_lock: convertLockingConditionsToProto([condition.baseLock])[0],
             confirmation_blocks: condition.confirmationBlocks ?? 6,
           },
         };
-      case 'delegation':
+      case "delegation":
         return {
-          type: 'delegation', // ✅ 添加 type 字段
+          type: "delegation", // ✅ 添加 type 字段
           delegation_lock: {
             original_owner: uint8ArrayToHex(condition.originalOwner),
-            allowed_delegates: condition.allowedDelegates.map(addr => uint8ArrayToHex(addr)),
+            allowed_delegates: condition.allowedDelegates.map((addr) => uint8ArrayToHex(addr)),
             authorized_operations: condition.authorizedOperations,
             expiry_duration_blocks: condition.expiryDurationBlocks ?? 0,
             max_value_per_operation: condition.maxValuePerOperation ?? 0,
           },
         };
-      case 'contract':
+      case "contract":
         return {
-          type: 'contract', // ✅ 添加 type 字段
+          type: "contract", // ✅ 添加 type 字段
           contract_lock: {
             contract_address: uint8ArrayToHex(condition.contractAddress),
             required_method: condition.requiredMethod,
-            parameter_schema: condition.parameterSchema || '',
+            parameter_schema: condition.parameterSchema || "",
             state_requirements: condition.stateRequirements || [],
             max_execution_time_ms: condition.maxExecutionTimeMs ?? 5000,
           },
         };
-      case 'threshold':
+      case "threshold":
         return {
-          type: 'threshold', // ✅ 添加 type 字段
+          type: "threshold", // ✅ 添加 type 字段
           threshold_lock: {
             threshold: condition.threshold,
             total_parties: condition.totalParties,
-            party_verification_keys: condition.partyVerificationKeys.map(key => uint8ArrayToHex(key)),
-            signature_scheme: condition.signatureScheme || 'BLS_THRESHOLD',
+            party_verification_keys: condition.partyVerificationKeys.map((key) =>
+              uint8ArrayToHex(key)
+            ),
+            signature_scheme: condition.signatureScheme || "BLS_THRESHOLD",
             security_level: 256,
           },
         };
@@ -217,15 +217,17 @@ export function convertLockingConditionsToProto(
  * 创建默认单密钥锁
  */
 export function createDefaultSingleKeyLock(address: Uint8Array): any[] {
-  return [{
-    // ✅ 默认锁也需要携带 type 字段，便于节点端解析
-    type: 'singleKey',
-    single_key_lock: {
-      required_address_hash: uint8ArrayToHex(address),
-      required_algorithm: 'ECDSA_SECP256K1',
-      sighash_type: 'SIGHASH_ALL',
+  return [
+    {
+      // ✅ 默认锁也需要携带 type 字段，便于节点端解析
+      type: "singleKey",
+      single_key_lock: {
+        required_address_hash: uint8ArrayToHex(address),
+        required_algorithm: "ECDSA_SECP256K1",
+        sighash_type: "SIGHASH_ALL",
+      },
     },
-  }];
+  ];
 }
 
 /**
@@ -238,13 +240,13 @@ export function validateLockingConditions(
   // 检查 ContractLock 循环依赖
   const contractAddresses = new Set<string>();
   for (const condition of conditions) {
-    if (condition.type === 'contract') {
+    if (condition.type === "contract") {
       const addrHex = uint8ArrayToHex(condition.contractAddress);
       if (contractAddresses.has(addrHex)) {
         throw new Error(`Duplicate contract lock address: ${addrHex}`);
       }
       contractAddresses.add(addrHex);
-      
+
       // TODO: 实现循环检测逻辑
       // 检查 contractAddress 是否形成循环引用
       if (!allowContractLockCycles) {
@@ -252,7 +254,7 @@ export function validateLockingConditions(
         // 这里简化处理，实际应该调用节点 API 检查
       }
     }
-    
+
     // 验证每种锁定条件的参数有效性
     validateSingleLockingCondition(condition);
   }
@@ -263,62 +265,62 @@ export function validateLockingConditions(
  */
 function validateSingleLockingCondition(condition: LockingCondition): void {
   switch (condition.type) {
-    case 'singleKey':
+    case "singleKey":
       if (condition.requiredAddressHash.length !== 20) {
-        throw new Error('SingleKeyLock: requiredAddressHash must be 20 bytes');
+        throw new Error("SingleKeyLock: requiredAddressHash must be 20 bytes");
       }
       break;
-    case 'multiKey':
+    case "multiKey":
       if (condition.requiredSignatures <= 0) {
-        throw new Error('MultiKeyLock: requiredSignatures must be > 0');
+        throw new Error("MultiKeyLock: requiredSignatures must be > 0");
       }
       if (condition.authorizedKeys.length === 0) {
-        throw new Error('MultiKeyLock: authorizedKeys cannot be empty');
+        throw new Error("MultiKeyLock: authorizedKeys cannot be empty");
       }
       if (condition.requiredSignatures > condition.authorizedKeys.length) {
-        throw new Error('MultiKeyLock: requiredSignatures cannot exceed authorizedKeys count');
+        throw new Error("MultiKeyLock: requiredSignatures cannot exceed authorizedKeys count");
       }
       break;
-    case 'timeLock':
+    case "timeLock":
       if (!condition.baseLock) {
-        throw new Error('TimeLock: baseLock is required');
+        throw new Error("TimeLock: baseLock is required");
       }
       validateSingleLockingCondition(condition.baseLock);
       break;
-    case 'heightLock':
+    case "heightLock":
       if (!condition.baseLock) {
-        throw new Error('HeightLock: baseLock is required');
+        throw new Error("HeightLock: baseLock is required");
       }
       validateSingleLockingCondition(condition.baseLock);
       break;
-    case 'delegation':
+    case "delegation":
       if (condition.originalOwner.length !== 20) {
-        throw new Error('DelegationLock: originalOwner must be 20 bytes');
+        throw new Error("DelegationLock: originalOwner must be 20 bytes");
       }
       if (condition.allowedDelegates.length === 0) {
-        throw new Error('DelegationLock: allowedDelegates cannot be empty');
+        throw new Error("DelegationLock: allowedDelegates cannot be empty");
       }
       break;
-    case 'contract':
+    case "contract":
       if (condition.contractAddress.length !== 20) {
-        throw new Error('ContractLock: contractAddress must be 20 bytes');
+        throw new Error("ContractLock: contractAddress must be 20 bytes");
       }
-      if (!condition.requiredMethod || condition.requiredMethod.trim() === '') {
-        throw new Error('ContractLock: requiredMethod cannot be empty');
+      if (!condition.requiredMethod || condition.requiredMethod.trim() === "") {
+        throw new Error("ContractLock: requiredMethod cannot be empty");
       }
       break;
-    case 'threshold':
+    case "threshold":
       if (condition.threshold <= 0) {
-        throw new Error('ThresholdLock: threshold must be > 0');
+        throw new Error("ThresholdLock: threshold must be > 0");
       }
       if (condition.totalParties <= 0) {
-        throw new Error('ThresholdLock: totalParties must be > 0');
+        throw new Error("ThresholdLock: totalParties must be > 0");
       }
       if (condition.threshold > condition.totalParties) {
-        throw new Error('ThresholdLock: threshold cannot exceed totalParties');
+        throw new Error("ThresholdLock: threshold cannot exceed totalParties");
       }
       if (condition.partyVerificationKeys.length !== condition.totalParties) {
-        throw new Error('ThresholdLock: partyVerificationKeys count must match totalParties');
+        throw new Error("ThresholdLock: partyVerificationKeys count must match totalParties");
       }
       break;
   }
@@ -329,7 +331,6 @@ function validateSingleLockingCondition(condition: LockingCondition): void {
  */
 function uint8ArrayToHex(bytes: Uint8Array): string {
   return Array.from(bytes)
-    .map(b => b.toString(16).padStart(2, '0'))
-    .join('');
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
 }
-

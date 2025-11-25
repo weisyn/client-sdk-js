@@ -1,9 +1,9 @@
 /**
  * 轻量 ABI Helper
- * 
+ *
  * 提供合约调用 payload 构建功能，严格遵循 WES ABI 规范
  * 规范来源：weisyn.git/docs/components/core/ispc/abi-and-payload.md
- * 
+ *
  * 本模块不依赖 contract-sdk-js，实现最小 JSON + Base64 路径
  */
 
@@ -51,9 +51,12 @@ export interface ABIMethod {
  * 将 Uint8Array 转换为十六进制字符串（带 0x 前缀）
  */
 function bytesToHex(bytes: Uint8Array): string {
-  return '0x' + Array.from(bytes)
-    .map(b => b.toString(16).padStart(2, '0'))
-    .join('');
+  return (
+    "0x" +
+    Array.from(bytes)
+      .map((b) => b.toString(16).padStart(2, "0"))
+      .join("")
+  );
 }
 
 /**
@@ -80,10 +83,10 @@ function tokenIdToHex(tokenId: Uint8Array): string {
  * 将金额转换为字符串（大整数字符串）
  */
 function amountToString(amount: string | number | bigint): string {
-  if (typeof amount === 'string') {
+  if (typeof amount === "string") {
     return amount;
   }
-  if (typeof amount === 'bigint') {
+  if (typeof amount === "bigint") {
     return amount.toString();
   }
   return amount.toString();
@@ -91,11 +94,11 @@ function amountToString(amount: string | number | bigint): string {
 
 /**
  * 构建合约调用 payload JSON 对象
- * 
+ *
  * 根据 WES ABI 规范（abi-and-payload.md）：
  * - 保留字段：from, to, amount, token_id
  * - 扩展字段：从方法参数推导
- * 
+ *
  * @param methodInfo ABI 方法信息（可选，用于参数类型检查）
  * @param args 方法参数数组
  * @param options Payload 构建选项
@@ -135,10 +138,10 @@ export function buildPayload(
         // 注意：如果参数名与保留字段冲突，这里会覆盖（但应该避免这种情况）
         // 根据 WES ABI 规范，扩展字段名不得与保留字段冲突
         const paramName = param.name;
-        if (['from', 'to', 'amount', 'token_id'].includes(paramName)) {
+        if (["from", "to", "amount", "token_id"].includes(paramName)) {
           throw new Error(
             `Parameter name "${paramName}" conflicts with reserved field. ` +
-            `Please use a different parameter name.`
+              `Please use a different parameter name.`
           );
         }
         payload[paramName] = args[index];
@@ -157,9 +160,9 @@ export function buildPayload(
 
 /**
  * 构建并编码 payload（JSON + Base64）
- * 
+ *
  * 这是主要入口函数，用于构建符合 WES ABI 规范的 payload
- * 
+ *
  * @param methodInfo ABI 方法信息（可选）
  * @param args 方法参数数组
  * @param options Payload 构建选项
@@ -178,12 +181,12 @@ export function buildAndEncodePayload(
 
   // 3. Base64 编码
   // 在浏览器和 Node.js 环境中都可用
-  if (typeof btoa !== 'undefined') {
+  if (typeof btoa !== "undefined") {
     // 浏览器环境
     return btoa(payloadJSON);
-  } else if (typeof Buffer !== 'undefined') {
+  } else if (typeof Buffer !== "undefined") {
     // Node.js 环境
-    return Buffer.from(payloadJSON, 'utf-8').toString('base64');
+    return Buffer.from(payloadJSON, "utf-8").toString("base64");
   } else {
     // Fallback：手动实现 Base64 编码
     return manualBase64Encode(payloadJSON);
@@ -194,8 +197,8 @@ export function buildAndEncodePayload(
  * 手动 Base64 编码（fallback）
  */
 function manualBase64Encode(str: string): string {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
-  let result = '';
+  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+  let result = "";
   let i = 0;
 
   while (i < str.length) {
@@ -207,10 +210,9 @@ function manualBase64Encode(str: string): string {
 
     result += chars.charAt((bitmap >> 18) & 63);
     result += chars.charAt((bitmap >> 12) & 63);
-    result += i - 2 < str.length ? chars.charAt((bitmap >> 6) & 63) : '=';
-    result += i - 1 < str.length ? chars.charAt(bitmap & 63) : '=';
+    result += i - 2 < str.length ? chars.charAt((bitmap >> 6) & 63) : "=";
+    result += i - 1 < str.length ? chars.charAt(bitmap & 63) : "=";
   }
 
   return result;
 }
-

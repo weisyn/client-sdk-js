@@ -7,25 +7,25 @@
 /**
  * Base58 字符表
  */
-const BASE58_ALPHABET = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
+const BASE58_ALPHABET = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
 
 /**
  * Base58 编码
  */
 function base58Encode(bytes: Uint8Array): string {
-  if (bytes.length === 0) return '';
-  
+  if (bytes.length === 0) return "";
+
   let num = BigInt(0);
   for (const byte of bytes) {
     num = num * BigInt(256) + BigInt(byte);
   }
-  
-  let result = '';
+
+  let result = "";
   while (num > 0) {
     result = BASE58_ALPHABET[Number(num % BigInt(58))] + result;
     num = num / BigInt(58);
   }
-  
+
   // 处理前导零
   for (const byte of bytes) {
     if (byte === 0) {
@@ -34,7 +34,7 @@ function base58Encode(bytes: Uint8Array): string {
       break;
     }
   }
-  
+
   return result;
 }
 
@@ -43,7 +43,7 @@ function base58Encode(bytes: Uint8Array): string {
  */
 function base58Decode(str: string): Uint8Array {
   if (str.length === 0) return new Uint8Array(0);
-  
+
   let num = BigInt(0);
   for (const char of str) {
     const index = BASE58_ALPHABET.indexOf(char);
@@ -52,7 +52,7 @@ function base58Decode(str: string): Uint8Array {
     }
     num = num * BigInt(58) + BigInt(index);
   }
-  
+
   // 计算前导零
   let leadingZeros = 0;
   for (const char of str) {
@@ -62,46 +62,46 @@ function base58Decode(str: string): Uint8Array {
       break;
     }
   }
-  
+
   // 转换为字节数组
   const bytes: number[] = [];
   while (num > 0) {
     bytes.unshift(Number(num % BigInt(256)));
     num = num / BigInt(256);
   }
-  
+
   // 添加前导零
   for (let i = 0; i < leadingZeros; i++) {
     bytes.unshift(0);
   }
-  
+
   return new Uint8Array(bytes);
 }
 
 /**
  * 计算 SHA256 哈希（同步版本）
- * 
+ *
  * **注意**：在浏览器环境中，此函数会抛出错误，因为 Web Crypto API 是异步的。
  * 如果需要浏览器支持，请使用 `sha256Async` 函数。
  */
 function sha256(data: Uint8Array): Uint8Array {
   // Node.js 环境
-  if (typeof require !== 'undefined') {
+  if (typeof require !== "undefined") {
     try {
       // eslint-disable-next-line @typescript-eslint/no-var-requires
-      const crypto = require('crypto');
-      return new Uint8Array(crypto.createHash('sha256').update(data).digest());
+      const crypto = require("crypto");
+      return new Uint8Array(crypto.createHash("sha256").update(data).digest());
     } catch (e) {
       // 如果 require 失败，继续尝试浏览器环境
     }
   }
-  
+
   // 浏览器环境不支持同步 SHA256
   // 注意：Web Crypto API 的 digest 是异步的，但这里为了保持接口一致性，
   // 在浏览器环境中抛出错误，提示使用异步版本或 Node.js 环境
   throw new Error(
-    'SHA256 requires Node.js crypto module. ' +
-    'For browser environments, please use sha256Async or ensure you are running in Node.js.'
+    "SHA256 requires Node.js crypto module. " +
+      "For browser environments, please use sha256Async or ensure you are running in Node.js."
   );
 }
 
@@ -110,7 +110,7 @@ function sha256(data: Uint8Array): Uint8Array {
  */
 async function sha256Async(data: Uint8Array): Promise<Uint8Array> {
   // 浏览器环境：使用 Web Crypto API
-  if (typeof window !== 'undefined' && window.crypto && window.crypto.subtle) {
+  if (typeof window !== "undefined" && window.crypto && window.crypto.subtle) {
     // 确保 data 是 ArrayBuffer，兼容 Web Crypto API
     // 如果 buffer 是 SharedArrayBuffer，需要转换为 ArrayBuffer
     let buffer: ArrayBuffer;
@@ -121,34 +121,37 @@ async function sha256Async(data: Uint8Array): Promise<Uint8Array> {
     } else {
       buffer = data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength);
     }
-    const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
+    const hashBuffer = await crypto.subtle.digest("SHA-256", buffer);
     return new Uint8Array(hashBuffer);
   }
-  
+
   // Node.js 环境：使用 crypto 模块
-  if (typeof require !== 'undefined') {
+  if (typeof require !== "undefined") {
     // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const crypto = require('crypto');
-    return new Uint8Array(crypto.createHash('sha256').update(data).digest());
+    const crypto = require("crypto");
+    return new Uint8Array(crypto.createHash("sha256").update(data).digest());
   }
-  
-  throw new Error('SHA256 is not supported in this environment');
+
+  throw new Error("SHA256 is not supported in this environment");
 }
 
 /**
  * 将地址转换为十六进制字符串
  */
 export function addressToHex(address: Uint8Array): string {
-  return '0x' + Array.from(address)
-    .map(b => b.toString(16).padStart(2, '0'))
-    .join('');
+  return (
+    "0x" +
+    Array.from(address)
+      .map((b) => b.toString(16).padStart(2, "0"))
+      .join("")
+  );
 }
 
 /**
  * 将十六进制字符串转换为地址
  */
 export function hexToAddress(hex: string): Uint8Array {
-  const cleanHex = hex.startsWith('0x') ? hex.slice(2) : hex;
+  const cleanHex = hex.startsWith("0x") ? hex.slice(2) : hex;
   const bytes = new Uint8Array(cleanHex.length / 2);
   for (let i = 0; i < bytes.length; i++) {
     bytes[i] = parseInt(cleanHex.substr(i * 2, 2), 16);
@@ -160,8 +163,8 @@ export function hexToAddress(hex: string): Uint8Array {
  * 验证地址格式
  */
 export function isValidAddress(address: Uint8Array | string): boolean {
-  if (typeof address === 'string') {
-    const cleanHex = address.startsWith('0x') ? address.slice(2) : address;
+  if (typeof address === "string") {
+    const cleanHex = address.startsWith("0x") ? address.slice(2) : address;
     return cleanHex.length === 40 && /^[0-9a-fA-F]+$/.test(cleanHex);
   }
   return address.length === 20;
@@ -169,11 +172,11 @@ export function isValidAddress(address: Uint8Array | string): boolean {
 
 /**
  * 将 20 字节地址转换为 Base58Check 编码
- * 
+ *
  * **格式**：
  * - 版本字节（1字节）+ 地址哈希（20字节）+ 校验和（4字节）
  * - 使用 Base58Check 编码
- * 
+ *
  * **注意**：
  * - WES 地址版本字节 = 0x1C
  */
@@ -183,7 +186,7 @@ export function addressBytesToBase58(addressBytes: Uint8Array): string {
   }
 
   // WES 地址版本字节
-  const versionByte = 0x1C;
+  const versionByte = 0x1c;
 
   // 构建版本字节 + 地址哈希
   const versionedAddress = new Uint8Array(21);
@@ -208,7 +211,7 @@ export function addressBytesToBase58(addressBytes: Uint8Array): string {
 
 /**
  * 将 Base58Check 编码地址转换为 20 字节地址哈希
- * 
+ *
  * **格式**：
  * - Base58Check 解码后：版本字节（1字节）+ 地址哈希（20字节）+ 校验和（4字节）
  * - 返回地址哈希（20字节）
@@ -219,7 +222,9 @@ export function addressBase58ToBytes(base58Addr: string): Uint8Array {
 
   // 验证长度：版本字节（1）+ 地址哈希（20）+ 校验和（4）= 25 字节
   if (decoded.length !== 25) {
-    throw new Error(`Invalid address length: expected 25 bytes after Base58 decode, got ${decoded.length}`);
+    throw new Error(
+      `Invalid address length: expected 25 bytes after Base58 decode, got ${decoded.length}`
+    );
   }
 
   // 验证校验和
@@ -232,7 +237,7 @@ export function addressBase58ToBytes(base58Addr: string): Uint8Array {
 
   // 比较校验和
   if (!equalBytes(checksum, expectedChecksum)) {
-    throw new Error('Invalid checksum');
+    throw new Error("Invalid checksum");
   }
 
   // 返回地址哈希（跳过版本字节）
@@ -259,7 +264,7 @@ function equalBytes(a: Uint8Array, b: Uint8Array): boolean {
  */
 export function addressHexToBase58(hexAddr: string): string {
   // 移除 0x 前缀
-  const cleanHex = hexAddr.startsWith('0x') ? hexAddr.slice(2) : hexAddr;
+  const cleanHex = hexAddr.startsWith("0x") ? hexAddr.slice(2) : hexAddr;
 
   // 解码十六进制
   const addressBytes = hexToAddress(cleanHex);
@@ -277,11 +282,11 @@ export function addressBase58ToHex(base58Addr: string): string {
 
 /**
  * 将 20 字节地址转换为 Base58Check 编码（异步版本，支持浏览器）
- * 
+ *
  * **格式**：
  * - 版本字节（1字节）+ 地址哈希（20字节）+ 校验和（4字节）
  * - 使用 Base58Check 编码
- * 
+ *
  * **注意**：
  * - WES 地址版本字节 = 0x1C
  * - 此版本使用异步 SHA256，支持浏览器环境
@@ -292,7 +297,7 @@ export async function addressBytesToBase58Async(addressBytes: Uint8Array): Promi
   }
 
   // WES 地址版本字节
-  const versionByte = 0x1C;
+  const versionByte = 0x1c;
 
   // 构建版本字节 + 地址哈希
   const versionedAddress = new Uint8Array(21);
@@ -315,7 +320,7 @@ export async function addressBytesToBase58Async(addressBytes: Uint8Array): Promi
 
 /**
  * 将 Base58Check 编码地址转换为 20 字节地址哈希（异步版本，支持浏览器）
- * 
+ *
  * **格式**：
  * - Base58Check 解码后：版本字节（1字节）+ 地址哈希（20字节）+ 校验和（4字节）
  * - 返回地址哈希（20字节）
@@ -326,7 +331,9 @@ export async function addressBase58ToBytesAsync(base58Addr: string): Promise<Uin
 
   // 验证长度：版本字节（1）+ 地址哈希（20）+ 校验和（4）= 25 字节
   if (decoded.length !== 25) {
-    throw new Error(`Invalid address length: expected 25 bytes after Base58 decode, got ${decoded.length}`);
+    throw new Error(
+      `Invalid address length: expected 25 bytes after Base58 decode, got ${decoded.length}`
+    );
   }
 
   // 验证校验和
@@ -339,7 +346,7 @@ export async function addressBase58ToBytesAsync(base58Addr: string): Promise<Uin
 
   // 比较校验和
   if (!equalBytes(checksum, expectedChecksum)) {
-    throw new Error('Invalid checksum');
+    throw new Error("Invalid checksum");
   }
 
   // 返回地址哈希（跳过版本字节）
@@ -351,7 +358,7 @@ export async function addressBase58ToBytesAsync(base58Addr: string): Promise<Uin
  */
 export async function addressHexToBase58Async(hexAddr: string): Promise<string> {
   // 移除 0x 前缀
-  const cleanHex = hexAddr.startsWith('0x') ? hexAddr.slice(2) : hexAddr;
+  const cleanHex = hexAddr.startsWith("0x") ? hexAddr.slice(2) : hexAddr;
 
   // 解码十六进制
   const addressBytes = hexToAddress(cleanHex);
@@ -366,4 +373,3 @@ export async function addressBase58ToHexAsync(base58Addr: string): Promise<strin
   const addressBytes = await addressBase58ToBytesAsync(base58Addr);
   return addressToHex(addressBytes);
 }
-

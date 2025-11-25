@@ -1,20 +1,16 @@
 /**
  * Contract 服务
- * 
+ *
  * 提供合约调用和查询的统一接口
  * 封装合约调用的完整流程：构建 payload、获取未签名交易、签名、提交
  */
 
-import { IClient } from '../../client/client';
-import { Wallet } from '../../wallet/wallet';
-import { bytesToHex, hexToBytes } from '../../utils/hex';
+import { IClient } from "../../client/client";
+import { Wallet } from "../../wallet/wallet";
+import { bytesToHex, hexToBytes } from "../../utils/hex";
 // 使用内部轻量 ABI helper，严格遵循 WES ABI 规范
 // 规范来源：weisyn.git/docs/components/core/ispc/abi-and-payload.md
-import {
-  type ABIMethod,
-  buildAndEncodePayload,
-  type BuildPayloadOptions,
-} from '../../utils/abi';
+import { type ABIMethod, buildAndEncodePayload, type BuildPayloadOptions } from "../../utils/abi";
 
 /**
  * 合约调用请求
@@ -83,7 +79,7 @@ export class ContractService {
     if (this.wallet) {
       return this.wallet;
     }
-    throw new Error('Wallet is required for contract invocation');
+    throw new Error("Wallet is required for contract invocation");
   }
 
   /**
@@ -99,24 +95,24 @@ export class ContractService {
    * 验证合约调用请求参数
    */
   private validateCallRequest(request: CallContractRequest): void {
-    this.validateAddress(request.contractAddress, 'Contract address', 32);
-    this.validateAddress(request.from, 'From address', 20);
-    
-    if (!request.method || typeof request.method !== 'string') {
-      throw new Error('Method name is required and must be a string');
+    this.validateAddress(request.contractAddress, "Contract address", 32);
+    this.validateAddress(request.from, "From address", 20);
+
+    if (!request.method || typeof request.method !== "string") {
+      throw new Error("Method name is required and must be a string");
     }
 
     if (!Array.isArray(request.args)) {
-      throw new Error('Args must be an array');
+      throw new Error("Args must be an array");
     }
 
     // 验证方法信息与参数数量匹配
     if (request.methodInfo && request.methodInfo.parameters) {
-      const requiredParams = request.methodInfo.parameters.filter(p => p.required !== false);
+      const requiredParams = request.methodInfo.parameters.filter((p) => p.required !== false);
       if (request.args.length < requiredParams.length) {
         throw new Error(
           `Method ${request.method} requires at least ${requiredParams.length} parameters, ` +
-          `but got ${request.args.length}`
+            `but got ${request.args.length}`
         );
       }
     }
@@ -126,23 +122,23 @@ export class ContractService {
    * 验证合约查询请求参数
    */
   private validateQueryRequest(request: QueryContractRequest): void {
-    this.validateAddress(request.contractAddress, 'Contract address', 32);
-    
-    if (!request.method || typeof request.method !== 'string') {
-      throw new Error('Method name is required and must be a string');
+    this.validateAddress(request.contractAddress, "Contract address", 32);
+
+    if (!request.method || typeof request.method !== "string") {
+      throw new Error("Method name is required and must be a string");
     }
 
     if (!Array.isArray(request.args)) {
-      throw new Error('Args must be an array');
+      throw new Error("Args must be an array");
     }
 
     // 验证方法信息与参数数量匹配
     if (request.methodInfo && request.methodInfo.parameters) {
-      const requiredParams = request.methodInfo.parameters.filter(p => p.required !== false);
+      const requiredParams = request.methodInfo.parameters.filter((p) => p.required !== false);
       if (request.args.length < requiredParams.length) {
         throw new Error(
           `Method ${request.method} requires at least ${requiredParams.length} parameters, ` +
-          `but got ${request.args.length}`
+            `but got ${request.args.length}`
         );
       }
     }
@@ -150,7 +146,7 @@ export class ContractService {
 
   /**
    * 调用合约（写操作）
-   * 
+   *
    * **流程**：
    * 1. 验证请求参数
    * 2. 构建 JSON payload（使用内部轻量 ABI helper，遵循 WES ABI 规范）
@@ -158,10 +154,7 @@ export class ContractService {
    * 4. 使用 Wallet 签名未签名交易
    * 5. 调用 `wes_sendRawTransaction` 提交已签名交易
    */
-  async callContract(
-    request: CallContractRequest,
-    wallet?: Wallet
-  ): Promise<CallContractResult> {
+  async callContract(request: CallContractRequest, wallet?: Wallet): Promise<CallContractResult> {
     // 1. 参数验证
     this.validateCallRequest(request);
 
@@ -170,7 +163,7 @@ export class ContractService {
 
     // 3. 验证地址匹配
     if (!this.addressesEqual(w.address, request.from)) {
-      throw new Error('Wallet address does not match from address');
+      throw new Error("Wallet address does not match from address");
     }
 
     // 4. 构建 JSON payload（使用内部轻量 ABI helper，遵循 WES ABI 规范）
@@ -191,11 +184,15 @@ export class ContractService {
 
     let payloadBase64: string;
     try {
-      payloadBase64 = buildAndEncodePayload(request.methodInfo ?? null, request.args, payloadOptions);
+      payloadBase64 = buildAndEncodePayload(
+        request.methodInfo ?? null,
+        request.args,
+        payloadOptions
+      );
     } catch (error) {
       throw new Error(
         `Failed to build payload for method ${request.method}: ` +
-        `${error instanceof Error ? error.message : String(error)}`
+          `${error instanceof Error ? error.message : String(error)}`
       );
     }
 
@@ -210,27 +207,27 @@ export class ContractService {
 
     let result: any;
     try {
-      result = await this.client.call('wes_callContract', [callContractParams]);
+      result = await this.client.call("wes_callContract", [callContractParams]);
     } catch (error) {
       throw new Error(
         `Failed to call contract ${bytesToHex(request.contractAddress)} method ${request.method}: ` +
-        `${error instanceof Error ? error.message : String(error)}`
+          `${error instanceof Error ? error.message : String(error)}`
       );
     }
 
-    if (!result || typeof result !== 'object') {
-      throw new Error('Invalid callContract response format');
+    if (!result || typeof result !== "object") {
+      throw new Error("Invalid callContract response format");
     }
 
     const unsignedTxHex = result.unsignedTx || result.unsigned_tx;
     if (!unsignedTxHex) {
-      throw new Error('Missing unsignedTx in callContract response');
+      throw new Error("Missing unsignedTx in callContract response");
     }
 
     // 7. 签名交易
     let signedTxBytes: Uint8Array;
     try {
-      const cleanHex = unsignedTxHex.startsWith('0x') ? unsignedTxHex.slice(2) : unsignedTxHex;
+      const cleanHex = unsignedTxHex.startsWith("0x") ? unsignedTxHex.slice(2) : unsignedTxHex;
       const unsignedTxBytes = hexToBytes(cleanHex);
       signedTxBytes = await w.signTransaction(unsignedTxBytes);
     } catch (error) {
@@ -240,7 +237,7 @@ export class ContractService {
     }
 
     // 8. 提交交易
-    const signedTxHex = '0x' + bytesToHex(signedTxBytes);
+    const signedTxHex = "0x" + bytesToHex(signedTxBytes);
     let sendResult: any;
     try {
       sendResult = await this.client.sendRawTransaction(signedTxHex);
@@ -251,9 +248,7 @@ export class ContractService {
     }
 
     if (!sendResult.accepted) {
-      throw new Error(
-        `Transaction rejected: ${sendResult.reason || 'Unknown reason'}`
-      );
+      throw new Error(`Transaction rejected: ${sendResult.reason || "Unknown reason"}`);
     }
 
     return {
@@ -265,7 +260,7 @@ export class ContractService {
 
   /**
    * 查询合约（只读调用）
-   * 
+   *
    * **流程**：
    * 1. 验证请求参数
    * 2. 构建 JSON payload（使用内部轻量 ABI helper，遵循 WES ABI 规范）
@@ -282,7 +277,7 @@ export class ContractService {
     } catch (error) {
       throw new Error(
         `Failed to build payload for method ${request.method}: ` +
-        `${error instanceof Error ? error.message : String(error)}`
+          `${error instanceof Error ? error.message : String(error)}`
       );
     }
 
@@ -296,12 +291,12 @@ export class ContractService {
     };
 
     try {
-      const result = await this.client.call('wes_callContract', [callContractParams]);
+      const result = await this.client.call("wes_callContract", [callContractParams]);
       return result;
     } catch (error) {
       // 尝试其他可能的 RPC 方法名
       try {
-        return await this.client.call('wes_queryContract', [
+        return await this.client.call("wes_queryContract", [
           bytesToHex(request.contractAddress),
           request.method,
           payloadBase64,
@@ -309,7 +304,7 @@ export class ContractService {
       } catch (fallbackError) {
         throw new Error(
           `Failed to query contract ${bytesToHex(request.contractAddress)} method ${request.method}: ` +
-          `${error instanceof Error ? error.message : String(error)}`
+            `${error instanceof Error ? error.message : String(error)}`
         );
       }
     }
@@ -333,4 +328,3 @@ export class ContractService {
   // 使用内部轻量 ABI helper（src/utils/abi.ts），严格遵循 WES ABI 规范
   // 不再依赖 @weisyn/contract-sdk-js
 }
-

@@ -2,9 +2,9 @@
  * Client 接口定义
  */
 
-import { ClientConfig, Protocol, EventSubscription, SendTxResult, SubscribeParams } from './types';
-import { HTTPClient } from './http';
-import { WebSocketClient } from './websocket';
+import { ClientConfig, Protocol, EventSubscription, SendTxResult, SubscribeParams } from "./types";
+import { HTTPClient } from "./http";
+import { WebSocketClient } from "./websocket";
 
 /**
  * WES 客户端接口
@@ -55,9 +55,9 @@ export type { Protocol };
  */
 export function createClient(config: ClientConfig): IClient {
   switch (config.protocol) {
-    case 'http':
+    case "http":
       return new HTTPClient(config);
-    case 'websocket':
+    case "websocket":
       return new WebSocketClient(config);
     default:
       throw new Error(`Unsupported protocol: ${config.protocol}`);
@@ -96,4 +96,3 @@ export class Client implements IClient {
  * IClient 接口已在上面通过 export interface IClient 导出
  * 不需要再次导出
  */
-

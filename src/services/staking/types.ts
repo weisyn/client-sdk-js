@@ -157,4 +157,3 @@ export interface SlashResult {
   /** 区块高度 */
   blockHeight?: number;
 }
-

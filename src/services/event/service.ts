@@ -1,19 +1,15 @@
 /**
  * Event 服务实现
- * 
+ *
  * **架构说明**：
  * - Event Service 为 Workbench Explorer 场景提供事件查询和订阅功能
  * - 基于 WESClient 类型化 API 实现
  */
 
-import { IClient } from '../../client/client';
-import { WESClientImpl } from '../../client/wesclient';
-import type { WESClient } from '../../client/wesclient';
-import type {
-  EventInfo,
-  EventFilters,
-  EventSubscription,
-} from '../../client/wesclient-types';
+import { IClient } from "../../client/client";
+import { WESClientImpl } from "../../client/wesclient";
+import type { WESClient } from "../../client/wesclient";
+import type { EventInfo, EventFilters, EventSubscription } from "../../client/wesclient-types";
 
 /**
  * EventService 事件服务接口
@@ -21,7 +17,7 @@ import type {
 export interface EventService {
   // 查询
   getEvents(filters: EventFilters): Promise<EventInfo[]>;
-  
+
   // 订阅
   subscribeEvents(filters: EventFilters): Promise<EventSubscription>;
 }
@@ -60,4 +56,3 @@ export class EventServiceImpl implements EventService {
     return await wesClient.subscribeEvents(filters);
   }
 }
-

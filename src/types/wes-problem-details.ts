@@ -36,8 +36,8 @@ export class WesError extends Error {
   public readonly timestamp: string;
 
   constructor(problem: WesProblemDetails) {
-    super(problem.userMessage || problem.detail || problem.title || 'Unknown error');
-    this.name = 'WesError';
+    super(problem.userMessage || problem.detail || problem.title || "Unknown error");
+    this.name = "WesError";
     this.code = problem.code;
     this.layer = problem.layer;
     this.userMessage = problem.userMessage;
@@ -86,10 +86,10 @@ export class WesError extends Error {
  * Layer 常量
  */
 export const Layer = {
-  CLIENT_SDK_JS: 'client-sdk-js',
-  BLOCKCHAIN_SERVICE: 'blockchain-service',
-  CONTRACT_COMPILER: 'contract-compiler',
-  CONTRACT_WORKBENCH_UI: 'contract-workbench-ui',
+  CLIENT_SDK_JS: "client-sdk-js",
+  BLOCKCHAIN_SERVICE: "blockchain-service",
+  CONTRACT_COMPILER: "contract-compiler",
+  CONTRACT_WORKBENCH_UI: "contract-workbench-ui",
 } as const;
 
 /**
@@ -97,38 +97,38 @@ export const Layer = {
  */
 export const ErrorCode = {
   // SDK 错误
-  SDK_HTTP_ERROR: 'SDK_HTTP_ERROR',
-  SDK_GRPC_ERROR: 'SDK_GRPC_ERROR',
-  SDK_REQUEST_SERIALIZATION_ERROR: 'SDK_REQUEST_SERIALIZATION_ERROR',
-  SDK_RESPONSE_DESERIALIZATION_ERROR: 'SDK_RESPONSE_DESERIALIZATION_ERROR',
-  SDK_CONNECTION_ERROR: 'SDK_CONNECTION_ERROR',
+  SDK_HTTP_ERROR: "SDK_HTTP_ERROR",
+  SDK_GRPC_ERROR: "SDK_GRPC_ERROR",
+  SDK_REQUEST_SERIALIZATION_ERROR: "SDK_REQUEST_SERIALIZATION_ERROR",
+  SDK_RESPONSE_DESERIALIZATION_ERROR: "SDK_RESPONSE_DESERIALIZATION_ERROR",
+  SDK_CONNECTION_ERROR: "SDK_CONNECTION_ERROR",
 
   // 通用错误
-  COMMON_VALIDATION_ERROR: 'COMMON_VALIDATION_ERROR',
-  COMMON_INTERNAL_ERROR: 'COMMON_INTERNAL_ERROR',
-  COMMON_TIMEOUT: 'COMMON_TIMEOUT',
-  COMMON_SERVICE_UNAVAILABLE: 'COMMON_SERVICE_UNAVAILABLE',
+  COMMON_VALIDATION_ERROR: "COMMON_VALIDATION_ERROR",
+  COMMON_INTERNAL_ERROR: "COMMON_INTERNAL_ERROR",
+  COMMON_TIMEOUT: "COMMON_TIMEOUT",
+  COMMON_SERVICE_UNAVAILABLE: "COMMON_SERVICE_UNAVAILABLE",
 } as const;
 
 /**
  * 从 HTTP 响应解析 Problem Details
  */
 export async function parseProblemDetails(response: Response): Promise<WesProblemDetails | null> {
-  const contentType = response.headers.get('Content-Type');
-  
-  if (contentType && contentType.includes('application/problem+json')) {
+  const contentType = response.headers.get("Content-Type");
+
+  if (contentType && contentType.includes("application/problem+json")) {
     try {
-      const problem = await response.json() as WesProblemDetails;
-      
+      const problem = (await response.json()) as WesProblemDetails;
+
       // 验证必填字段
       if (problem.code && problem.layer && problem.userMessage && problem.traceId) {
         return problem;
       }
     } catch (error) {
-      console.warn('Failed to parse Problem Details:', error);
+      console.warn("Failed to parse Problem Details:", error);
     }
   }
-  
+
   return null;
 }
 
@@ -137,9 +137,9 @@ export async function parseProblemDetails(response: Response): Promise<WesProble
  */
 export function parseProblemDetailsFromRPCError(rpcError: any): WesProblemDetails | null {
   // 检查 data 字段是否包含 Problem Details
-  if (rpcError.data && typeof rpcError.data === 'object') {
+  if (rpcError.data && typeof rpcError.data === "object") {
     const data = rpcError.data;
-    
+
     // 检查是否包含 Problem Details 必填字段
     if (data.code && data.layer && data.userMessage && data.traceId) {
       return {
@@ -157,7 +157,7 @@ export function parseProblemDetailsFromRPCError(rpcError: any): WesProblemDetail
       };
     }
   }
-  
+
   return null;
 }
 
@@ -182,4 +182,3 @@ export function createDefaultWesError(
     timestamp: new Date().toISOString(),
   });
 }
-

@@ -1,6 +1,6 @@
 /**
  * 批量操作工具
- * 
+ *
  * 提供批量查询、批量操作等功能，提升性能
  */
 
@@ -35,7 +35,7 @@ export interface BatchProgress {
 /**
  * 默认批量配置
  */
-const DEFAULT_BATCH_CONFIG: Required<Omit<BatchConfig, 'onProgress'>> = {
+const DEFAULT_BATCH_CONFIG: Required<Omit<BatchConfig, "onProgress">> = {
   batchSize: 50,
   concurrency: 5,
 };
@@ -59,7 +59,10 @@ export interface BatchQueryResult<T> {
 /**
  * 将数组分批次处理
  */
-export function batchArray<T>(array: T[], batchSize: number = DEFAULT_BATCH_CONFIG.batchSize): T[][] {
+export function batchArray<T>(
+  array: T[],
+  batchSize: number = DEFAULT_BATCH_CONFIG.batchSize
+): T[][] {
   const batches: T[][] = [];
   for (let i = 0; i < array.length; i += batchSize) {
     batches.push(array.slice(i, i + batchSize));
@@ -69,7 +72,7 @@ export function batchArray<T>(array: T[], batchSize: number = DEFAULT_BATCH_CONF
 
 /**
  * 批量查询
- * 
+ *
  * @param items 要查询的项目列表
  * @param queryFn 查询函数
  * @param config 配置
@@ -148,7 +151,7 @@ export async function batchQuery<T, R>(
 
 /**
  * 批量操作（带事务性保证）
- * 
+ *
  * @param items 要操作的项目列表
  * @param operationFn 操作函数
  * @param config 配置
@@ -197,4 +200,3 @@ export async function parallelExecute<T, R>(
   await Promise.all(executing);
   return results;
 }
-

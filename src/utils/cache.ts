@@ -1,6 +1,6 @@
 /**
  * 缓存层实现
- * 
+ *
  * 提供轻量级的内存缓存，支持 TTL 过期策略
  */
 
@@ -39,13 +39,13 @@ export class Cache<K, V> {
    * 生成缓存键
    */
   private getKey(key: K): string {
-    if (typeof key === 'string') {
+    if (typeof key === "string") {
       return key;
     }
     if (key instanceof Uint8Array) {
       return Array.from(key)
-        .map((b) => b.toString(16).padStart(2, '0'))
-        .join('');
+        .map((b) => b.toString(16).padStart(2, "0"))
+        .join("");
     }
     return JSON.stringify(key);
   }
@@ -147,7 +147,7 @@ export class Cache<K, V> {
 
 /**
  * 带缓存的查询函数包装器
- * 
+ *
  * @param cache 缓存实例
  * @param key 缓存键
  * @param queryFn 查询函数
@@ -170,4 +170,3 @@ export async function cachedQuery<T, K>(
   cache.set(key, value, ttl);
   return value;
 }
-

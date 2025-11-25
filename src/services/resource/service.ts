@@ -1,17 +1,17 @@
 /**
  * Resource 服务实现
- * 
+ *
  * **架构说明**：
  * - Resource 业务语义在 SDK 层，通过调用节点 API 部署和查询资源
  * - 支持静态资源、智能合约、AI 模型的部署和查询
  */
 
-import { IClient } from '../../client/client';
-import { Wallet } from '../../wallet/wallet';
-import { bytesToHex, hexToBytes } from '../../utils/hex';
-import { WESClientImpl } from '../../client/wesclient';
-import type { WESClient } from '../../client/wesclient';
-import type { ResourceFilters } from '../../client/wesclient-types';
+import { IClient } from "../../client/client";
+import { Wallet } from "../../wallet/wallet";
+import { bytesToHex, hexToBytes } from "../../utils/hex";
+import { WESClientImpl } from "../../client/wesclient";
+import type { WESClient } from "../../client/wesclient";
+import type { ResourceFilters } from "../../client/wesclient-types";
 import {
   DeployStaticResourceRequest,
   DeployStaticResourceResult,
@@ -22,12 +22,12 @@ import {
   ResourceInfo,
   ResourceView,
   ResourceHistory,
-} from './types';
+} from "./types";
 import {
   convertLockingConditionsToProto,
   createDefaultSingleKeyLock,
   validateLockingConditions,
-} from './locking';
+} from "./locking";
 
 /**
  * Resource 服务
@@ -60,7 +60,7 @@ export class ResourceService {
     if (this.wallet) {
       return this.wallet;
     }
-    throw new Error('Wallet is required');
+    throw new Error("Wallet is required");
   }
 
   /**
@@ -83,35 +83,37 @@ export class ResourceService {
    */
   private async readFile(filePath: string): Promise<Uint8Array> {
     // Node.js 环境
-    if (typeof require !== 'undefined') {
+    if (typeof require !== "undefined") {
       // eslint-disable-next-line @typescript-eslint/no-var-requires
-      const fs = require('fs').promises;
+      const fs = require("fs").promises;
       const buffer = await fs.readFile(filePath);
       return new Uint8Array(buffer);
     }
-    
-    throw new Error('File reading is only supported in Node.js environment. Please provide fileContent instead.');
+
+    throw new Error(
+      "File reading is only supported in Node.js environment. Please provide fileContent instead."
+    );
   }
 
   /**
    * Base64 编码
-   * 
+   *
    * **浏览器兼容性**：
    * - 对于大数组（>65536 字节），使用分块编码避免栈溢出
    */
   private base64Encode(data: Uint8Array): string {
     // Node.js 环境
-    if (typeof Buffer !== 'undefined') {
-      return Buffer.from(data).toString('base64');
+    if (typeof Buffer !== "undefined") {
+      return Buffer.from(data).toString("base64");
     }
-    
+
     // 浏览器环境
-    if (typeof btoa !== 'undefined') {
+    if (typeof btoa !== "undefined") {
       // 对于大数组，使用分块编码避免栈溢出
       // String.fromCharCode 有参数数量限制（约 65536）
       const chunkSize = 32768; // 安全的分块大小
       if (data.length > chunkSize) {
-        let result = '';
+        let result = "";
         for (let i = 0; i < data.length; i += chunkSize) {
           const chunk = data.slice(i, Math.min(i + chunkSize, data.length));
           result += String.fromCharCode(...chunk);
@@ -122,13 +124,13 @@ export class ResourceService {
         return btoa(binary);
       }
     }
-    
-    throw new Error('Base64 encoding is not supported in this environment');
+
+    throw new Error("Base64 encoding is not supported in this environment");
   }
 
   /**
    * 部署静态资源
-   * 
+   *
    * **流程**：
    * 1. 读取文件内容（Node.js 使用 fs，浏览器使用 fileContent）
    * 2. Base64 编码文件内容
@@ -148,7 +150,7 @@ export class ResourceService {
 
     // 3. 验证地址匹配
     if (!this.addressesEqual(w.address, request.from)) {
-      throw new Error('Wallet address does not match from address');
+      throw new Error("Wallet address does not match from address");
     }
 
     // 4. 读取文件内容
@@ -158,7 +160,7 @@ export class ResourceService {
     } else if (request.filePath) {
       fileBytes = await this.readFile(request.filePath);
     } else {
-      throw new Error('Either filePath or fileContent must be provided');
+      throw new Error("Either filePath or fileContent must be provided");
     }
 
     // 5. Base64 编码文件内容
@@ -172,22 +174,22 @@ export class ResourceService {
     const deployParams = {
       private_key: privateKeyHex,
       wasm_content: fileContentBase64, // 使用文件内容作为 wasm_content
-      abi_version: 'v1',
-      name: request.filePath || 'static_resource', // 使用文件路径作为名称
+      abi_version: "v1",
+      name: request.filePath || "static_resource", // 使用文件路径作为名称
       description: `Static resource: ${request.mimeType}`,
     };
 
-    const result = await this.client.call('wes_deployContract', [deployParams]);
+    const result = await this.client.call("wes_deployContract", [deployParams]);
 
-    if (!result || typeof result !== 'object') {
-      throw new Error('Invalid response format from wes_deployContract');
+    if (!result || typeof result !== "object") {
+      throw new Error("Invalid response format from wes_deployContract");
     }
 
     const resultMap = result;
 
     const success = resultMap.success;
     if (!success) {
-      const message = resultMap.message || 'Unknown error';
+      const message = resultMap.message || "Unknown error";
       throw new Error(`Deploy static resource failed: ${message}`);
     }
 
@@ -195,11 +197,13 @@ export class ResourceService {
     const txHash = resultMap.tx_hash || resultMap.txHash;
 
     if (!contentHashStr || !txHash) {
-      throw new Error('Missing content_hash or tx_hash in response');
+      throw new Error("Missing content_hash or tx_hash in response");
     }
 
     // 8. 解析 contentHash
-    const contentHash = hexToBytes(contentHashStr.startsWith('0x') ? contentHashStr.slice(2) : contentHashStr);
+    const contentHash = hexToBytes(
+      contentHashStr.startsWith("0x") ? contentHashStr.slice(2) : contentHashStr
+    );
 
     // 9. 返回结果
     return {
@@ -216,23 +220,23 @@ export class ResourceService {
   private validateDeployStaticResourceRequest(request: DeployStaticResourceRequest): void {
     // 1. 验证地址
     if (request.from.length !== 20) {
-      throw new Error('From address must be 20 bytes');
+      throw new Error("From address must be 20 bytes");
     }
 
     // 2. 验证文件路径或内容
     if (!request.filePath && !request.fileContent) {
-      throw new Error('Either filePath or fileContent must be provided');
+      throw new Error("Either filePath or fileContent must be provided");
     }
 
     // 3. 验证MIME类型
-    if (!request.mimeType || request.mimeType.trim() === '') {
-      throw new Error('MIME type is required');
+    if (!request.mimeType || request.mimeType.trim() === "") {
+      throw new Error("MIME type is required");
     }
   }
 
   /**
    * 部署智能合约
-   * 
+   *
    * **流程**：
    * 1. 读取 WASM 文件内容（Node.js 使用 fs，浏览器使用 wasmContent）
    * 2. Base64 编码 WASM 内容
@@ -263,7 +267,7 @@ export class ResourceService {
 
     // 4. 验证地址匹配
     if (!this.addressesEqual(w.address, request.from)) {
-      throw new Error('Wallet address does not match from address');
+      throw new Error("Wallet address does not match from address");
     }
 
     // 5. 读取 WASM 文件内容
@@ -273,7 +277,7 @@ export class ResourceService {
     } else if (request.wasmPath) {
       wasmBytes = await this.readFile(request.wasmPath);
     } else {
-      throw new Error('Either wasmPath or wasmContent must be provided');
+      throw new Error("Either wasmPath or wasmContent must be provided");
     }
 
     // 6. Base64 编码 WASM 内容
@@ -286,11 +290,17 @@ export class ResourceService {
     let lockingConditionsProto: any[];
     if (request.lockingConditions && request.lockingConditions.length > 0) {
       lockingConditionsProto = convertLockingConditionsToProto(request.lockingConditions);
-      console.log('[ResourceService] 使用用户指定的锁定条件:', JSON.stringify(lockingConditionsProto, null, 2));
+      console.log(
+        "[ResourceService] 使用用户指定的锁定条件:",
+        JSON.stringify(lockingConditionsProto, null, 2)
+      );
     } else {
       // 默认：单密钥锁（部署者地址）
       lockingConditionsProto = createDefaultSingleKeyLock(w.address);
-      console.log('[ResourceService] 使用默认单密钥锁:', JSON.stringify(lockingConditionsProto, null, 2));
+      console.log(
+        "[ResourceService] 使用默认单密钥锁:",
+        JSON.stringify(lockingConditionsProto, null, 2)
+      );
     }
 
     // 9. 调用 `wes_deployContract` API
@@ -298,15 +308,15 @@ export class ResourceService {
     const deployParams: any = {
       private_key: privateKeyHex,
       wasm_content: wasmContentBase64,
-      abi_version: 'v1', // 默认 ABI 版本
+      abi_version: "v1", // 默认 ABI 版本
       name: request.contractName,
-      description: '', // 可选
-      locking_conditions: lockingConditionsProto,  // ✅ 新增字段
+      description: "", // 可选
+      locking_conditions: lockingConditionsProto, // ✅ 新增字段
     };
-    
-    console.log('[ResourceService] 部署参数（不含私钥）:', {
+
+    console.log("[ResourceService] 部署参数（不含私钥）:", {
       ...deployParams,
-      private_key: '[REDACTED]',
+      private_key: "[REDACTED]",
       wasm_content: `${deployParams.wasm_content.substring(0, 50)}...`,
     });
 
@@ -316,17 +326,17 @@ export class ResourceService {
       deployParams.init_args = this.base64Encode(request.initArgs);
     }
 
-    const result = await this.client.call('wes_deployContract', [deployParams]);
+    const result = await this.client.call("wes_deployContract", [deployParams]);
 
-    if (!result || typeof result !== 'object') {
-      throw new Error('Invalid response format from wes_deployContract');
+    if (!result || typeof result !== "object") {
+      throw new Error("Invalid response format from wes_deployContract");
     }
 
     const resultMap = result;
 
     const success = resultMap.success;
     if (!success) {
-      const message = resultMap.message || 'Unknown error';
+      const message = resultMap.message || "Unknown error";
       throw new Error(`Deploy contract failed: ${message}`);
     }
 
@@ -334,11 +344,13 @@ export class ResourceService {
     const txHash = resultMap.tx_hash || resultMap.txHash;
 
     if (!contentHashStr || !txHash) {
-      throw new Error('Missing content_hash or tx_hash in response');
+      throw new Error("Missing content_hash or tx_hash in response");
     }
 
     // 8. 解析 contentHash
-    const contentHash = hexToBytes(contentHashStr.startsWith('0x') ? contentHashStr.slice(2) : contentHashStr);
+    const contentHash = hexToBytes(
+      contentHashStr.startsWith("0x") ? contentHashStr.slice(2) : contentHashStr
+    );
 
     // 9. 返回结果
     // 注意：合约地址通常是 contentHash（32字节）
@@ -357,23 +369,23 @@ export class ResourceService {
   private validateDeployContractRequest(request: DeployContractRequest): void {
     // 1. 验证地址
     if (request.from.length !== 20) {
-      throw new Error('From address must be 20 bytes');
+      throw new Error("From address must be 20 bytes");
     }
 
     // 2. 验证WASM路径或内容
     if (!request.wasmPath && !request.wasmContent) {
-      throw new Error('Either wasmPath or wasmContent must be provided');
+      throw new Error("Either wasmPath or wasmContent must be provided");
     }
 
     // 3. 验证合约名称
-    if (!request.contractName || request.contractName.trim() === '') {
-      throw new Error('Contract name is required');
+    if (!request.contractName || request.contractName.trim() === "") {
+      throw new Error("Contract name is required");
     }
   }
 
   /**
    * 部署AI模型
-   * 
+   *
    * **流程**：
    * 1. 读取模型文件内容（Node.js 使用 fs，浏览器使用 modelContent）
    * 2. Base64 编码 ONNX 内容
@@ -393,7 +405,7 @@ export class ResourceService {
 
     // 3. 验证地址匹配
     if (!this.addressesEqual(w.address, request.from)) {
-      throw new Error('Wallet address does not match from address');
+      throw new Error("Wallet address does not match from address");
     }
 
     // 4. 读取 ONNX 模型文件内容
@@ -403,7 +415,7 @@ export class ResourceService {
     } else if (request.modelPath) {
       onnxBytes = await this.readFile(request.modelPath);
     } else {
-      throw new Error('Either modelPath or modelContent must be provided');
+      throw new Error("Either modelPath or modelContent must be provided");
     }
 
     // 5. Base64 编码 ONNX 内容
@@ -417,20 +429,20 @@ export class ResourceService {
       private_key: privateKeyHex,
       onnx_content: onnxContentBase64,
       name: request.modelName,
-      description: '', // 可选
+      description: "", // 可选
     };
 
-    const result = await this.client.call('wes_deployAIModel', [deployParams]);
+    const result = await this.client.call("wes_deployAIModel", [deployParams]);
 
-    if (!result || typeof result !== 'object') {
-      throw new Error('Invalid response format from wes_deployAIModel');
+    if (!result || typeof result !== "object") {
+      throw new Error("Invalid response format from wes_deployAIModel");
     }
 
     const resultMap = result;
 
     const success = resultMap.success;
     if (!success) {
-      const message = resultMap.message || 'Unknown error';
+      const message = resultMap.message || "Unknown error";
       throw new Error(`Deploy AI model failed: ${message}`);
     }
 
@@ -438,11 +450,13 @@ export class ResourceService {
     const txHash = resultMap.tx_hash || resultMap.txHash;
 
     if (!contentHashStr || !txHash) {
-      throw new Error('Missing content_hash or tx_hash in response');
+      throw new Error("Missing content_hash or tx_hash in response");
     }
 
     // 8. 解析 contentHash
-    const contentHash = hexToBytes(contentHashStr.startsWith('0x') ? contentHashStr.slice(2) : contentHashStr);
+    const contentHash = hexToBytes(
+      contentHashStr.startsWith("0x") ? contentHashStr.slice(2) : contentHashStr
+    );
 
     // 9. 返回结果
     return {
@@ -459,33 +473,33 @@ export class ResourceService {
   private validateDeployAIModelRequest(request: DeployAIModelRequest): void {
     // 1. 验证地址
     if (request.from.length !== 20) {
-      throw new Error('From address must be 20 bytes');
+      throw new Error("From address must be 20 bytes");
     }
 
     // 2. 验证模型路径或内容
     if (!request.modelPath && !request.modelContent) {
-      throw new Error('Either modelPath or modelContent must be provided');
+      throw new Error("Either modelPath or modelContent must be provided");
     }
 
     // 3. 验证模型名称
-    if (!request.modelName || request.modelName.trim() === '') {
-      throw new Error('Model name is required');
+    if (!request.modelName || request.modelName.trim() === "") {
+      throw new Error("Model name is required");
     }
   }
 
   /**
    * 获取资源信息
-   * 
+   *
    * **流程**：
    * 1. 调用节点 API 查询资源信息
    * 2. 返回资源信息
-   * 
+   *
    * **注意**：不需要 Wallet
    */
   async getResource(contentHash: Uint8Array): Promise<ResourceInfo> {
     // 1. 验证 contentHash
     if (!contentHash || contentHash.length !== 32) {
-      throw new Error('ContentHash must be 32 bytes');
+      throw new Error("ContentHash must be 32 bytes");
     }
 
     // 2. 使用 WESClient 查询资源信息
@@ -504,11 +518,11 @@ export class ResourceService {
 
   /**
    * 获取资源列表
-   * 
+   *
    * **流程**：
    * 1. 使用 WESClient 查询资源列表
    * 2. 转换为 ResourceService 的 ResourceInfo 格式
-   * 
+   *
    * **注意**：不需要 Wallet
    */
   async getResources(filters: ResourceFilters): Promise<ResourceInfo[]> {
@@ -527,11 +541,11 @@ export class ResourceService {
 
   /**
    * 列出资源列表（新版本，使用 ResourceView）
-   * 
+   *
    * **流程**：
    * 1. 调用 `wes_listResources` API
    * 2. 解析返回的 ResourceView 数组
-   * 
+   *
    * **注意**：不需要 Wallet
    */
   async listResources(filters: ResourceFilters): Promise<ResourceView[]> {
@@ -541,7 +555,7 @@ export class ResourceService {
       filterMap.resourceType = filters.resourceType;
     }
     if (filters.owner && filters.owner.length > 0) {
-      filterMap.owner = '0x' + bytesToHex(filters.owner);
+      filterMap.owner = "0x" + bytesToHex(filters.owner);
     }
     if (filters.limit) {
       filterMap.limit = filters.limit;
@@ -551,11 +565,11 @@ export class ResourceService {
     }
 
     // 2. 调用 wes_listResources API
-    const result = await this.client.call('wes_listResources', [{ filters: filterMap }]);
+    const result = await this.client.call("wes_listResources", [{ filters: filterMap }]);
 
     // 3. 解析结果数组
     if (!Array.isArray(result)) {
-      throw new Error('Invalid response format: expected array');
+      throw new Error("Invalid response format: expected array");
     }
 
     // 4. 转换每个 ResourceView 对象
@@ -564,17 +578,17 @@ export class ResourceService {
 
   /**
    * 获取资源视图（新版本，使用 ResourceView）
-   * 
+   *
    * **流程**：
    * 1. 调用 `wes_getResource` API
    * 2. 解析返回的 ResourceView
-   * 
+   *
    * **注意**：不需要 Wallet
    */
   async getResourceView(contentHash: Uint8Array): Promise<ResourceView> {
     // 1. 验证 contentHash
     if (!contentHash || contentHash.length !== 32) {
-      throw new Error('ContentHash must be 32 bytes');
+      throw new Error("ContentHash must be 32 bytes");
     }
 
     // 2. 构建查询参数
@@ -582,11 +596,11 @@ export class ResourceService {
     const params = [contentHashHex];
 
     // 3. 调用 wes_getResource API
-    const result = await this.client.call('wes_getResource', params);
+    const result = await this.client.call("wes_getResource", params);
 
     // 4. 解析结果
-    if (typeof result !== 'object' || result === null) {
-      throw new Error('Invalid response format');
+    if (typeof result !== "object" || result === null) {
+      throw new Error("Invalid response format");
     }
 
     // 5. 解析 ResourceView
@@ -595,11 +609,11 @@ export class ResourceService {
 
   /**
    * 获取资源历史
-   * 
+   *
    * **流程**：
    * 1. 调用 `wes_getResourceHistory` API
    * 2. 解析返回的 ResourceHistory
-   * 
+   *
    * **注意**：不需要 Wallet
    */
   async getResourceHistory(
@@ -609,23 +623,25 @@ export class ResourceService {
   ): Promise<ResourceHistory> {
     // 1. 验证 contentHash
     if (!contentHash || contentHash.length !== 32) {
-      throw new Error('ContentHash must be 32 bytes');
+      throw new Error("ContentHash must be 32 bytes");
     }
 
     // 2. 构建查询参数
     const contentHashHex = bytesToHex(contentHash);
-    const params = [{
-      resourceId: '0x' + contentHashHex,
-      offset,
-      limit,
-    }];
+    const params = [
+      {
+        resourceId: "0x" + contentHashHex,
+        offset,
+        limit,
+      },
+    ];
 
     // 3. 调用 wes_getResourceHistory API
-    const result = await this.client.call('wes_getResourceHistory', params);
+    const result = await this.client.call("wes_getResourceHistory", params);
 
     // 4. 解析结果
-    if (typeof result !== 'object' || result === null) {
-      throw new Error('Invalid response format');
+    if (typeof result !== "object" || result === null) {
+      throw new Error("Invalid response format");
     }
 
     const resultMap = result;
@@ -660,26 +676,26 @@ export class ResourceService {
    */
   private parseResourceView(itemMap: any): ResourceView {
     const view: ResourceView = {
-      contentHash: itemMap.contentHash || '',
-      category: itemMap.category || 'STATIC',
+      contentHash: itemMap.contentHash || "",
+      category: itemMap.category || "STATIC",
       executableType: itemMap.executableType,
       mimeType: itemMap.mimeType,
       size: itemMap.size || 0,
-      owner: itemMap.owner || '',
-      status: itemMap.status || 'ACTIVE',
+      owner: itemMap.owner || "",
+      status: itemMap.status || "ACTIVE",
       creationTimestamp: itemMap.creationTimestamp || 0,
       isImmutable: itemMap.isImmutable || false,
       currentReferenceCount: itemMap.currentReferenceCount || 0,
       totalReferenceTimes: itemMap.totalReferenceTimes || 0,
-      deployTxId: itemMap.deployTxId || '',
+      deployTxId: itemMap.deployTxId || "",
       deployBlockHeight: itemMap.deployBlockHeight || 0,
-      deployBlockHash: itemMap.deployBlockHash || '',
+      deployBlockHash: itemMap.deployBlockHash || "",
     };
 
     // 解析 OutPoint
     if (itemMap.outPoint) {
       view.outPoint = {
-        txId: itemMap.outPoint.txId || '',
+        txId: itemMap.outPoint.txId || "",
         outputIndex: itemMap.outPoint.outputIndex || 0,
       };
     }
@@ -695,10 +711,10 @@ export class ResourceService {
   /**
    * 解析交易摘要
    */
-  private parseTxSummary(txMap: any): import('./types').TxSummary {
+  private parseTxSummary(txMap: any): import("./types").TxSummary {
     return {
-      txId: txMap.txId || '',
-      blockHash: txMap.blockHash || '',
+      txId: txMap.txId || "",
+      blockHash: txMap.blockHash || "",
       blockHeight: txMap.blockHeight || 0,
       timestamp: txMap.timestamp || 0,
     };
@@ -708,16 +724,14 @@ export class ResourceService {
 /**
  * 映射资源类型
  */
-function mapResourceType(
-  type: 'contract' | 'model' | 'static'
-): 'static' | 'contract' | 'aimodel' {
+function mapResourceType(type: "contract" | "model" | "static"): "static" | "contract" | "aimodel" {
   switch (type) {
-    case 'contract':
-      return 'contract';
-    case 'model':
-      return 'aimodel';
-    case 'static':
+    case "contract":
+      return "contract";
+    case "model":
+      return "aimodel";
+    case "static":
     default:
-      return 'static';
+      return "static";
   }
 }

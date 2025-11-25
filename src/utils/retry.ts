@@ -1,6 +1,6 @@
 /**
  * 请求重试工具
- * 
+ *
  * 提供指数退避重试机制，用于处理网络请求失败的情况
  */
 
@@ -25,7 +25,7 @@ export interface RetryConfig {
 /**
  * 默认重试配置
  */
-const DEFAULT_RETRY_CONFIG: Required<Omit<RetryConfig, 'retryable' | 'onRetry'>> = {
+const DEFAULT_RETRY_CONFIG: Required<Omit<RetryConfig, "retryable" | "onRetry">> = {
   maxRetries: 3,
   initialDelay: 1000,
   maxDelay: 10000,
@@ -37,13 +37,14 @@ const DEFAULT_RETRY_CONFIG: Required<Omit<RetryConfig, 'retryable' | 'onRetry'>>
  */
 function isRetryableError(error: any): boolean {
   // 网络错误（无响应）
-  if (error.message && (
-    error.message.includes('Network Error') ||
-    error.message.includes('No response received') ||
-    error.message.includes('timeout') ||
-    error.message.includes('ECONNREFUSED') ||
-    error.message.includes('ENOTFOUND')
-  )) {
+  if (
+    error.message &&
+    (error.message.includes("Network Error") ||
+      error.message.includes("No response received") ||
+      error.message.includes("timeout") ||
+      error.message.includes("ECONNREFUSED") ||
+      error.message.includes("ENOTFOUND"))
+  ) {
     return true;
   }
 
@@ -77,20 +78,17 @@ function calculateBackoffDelay(
  * 延迟指定时间
  */
 function sleep(ms: number): Promise<void> {
-  return new Promise(resolve => setTimeout(resolve, ms));
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 /**
  * 带重试的函数执行器
- * 
+ *
  * @param fn 要执行的函数
  * @param config 重试配置
  * @returns Promise<T> 函数执行结果
  */
-export async function withRetry<T>(
-  fn: () => Promise<T>,
-  config: RetryConfig = {}
-): Promise<T> {
+export async function withRetry<T>(fn: () => Promise<T>, config: RetryConfig = {}): Promise<T> {
   const {
     maxRetries = DEFAULT_RETRY_CONFIG.maxRetries,
     initialDelay = DEFAULT_RETRY_CONFIG.initialDelay,
@@ -101,7 +99,7 @@ export async function withRetry<T>(
   } = config;
 
   let lastError: any;
-  
+
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
       return await fn();
@@ -145,4 +143,3 @@ export function createRetryWrapper(config: RetryConfig = {}) {
     }) as T;
   };
 }
-
