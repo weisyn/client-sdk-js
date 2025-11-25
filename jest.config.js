@@ -10,6 +10,7 @@ module.exports = {
         esModuleInterop: true,
         allowSyntheticDefaultImports: true,
         module: 'commonjs',
+        types: ['node', 'jest'],
       },
     }],
     // ESM JavaScript 文件也需要转换（使用 babel-jest）

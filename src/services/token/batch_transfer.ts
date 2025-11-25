@@ -8,7 +8,7 @@
 
 import { IClient } from '../../client/client';
 import { bytesToHex, hexToBytes } from '../../utils/hex';
-import { addressToHex } from '../../utils/address';
+import { addressToHex, addressBytesToBase58 } from '../../utils/address';
 import { UTXO } from './tx_builder';
 
 /**
@@ -31,9 +31,9 @@ export async function buildBatchTransferTransaction(
     return sum + amount;
   }, BigInt(0));
 
-  // 3. 查询 UTXO
-  const fromAddressHex = addressToHex(fromAddress);
-  const utxoResult = await client.call('wes_getUTXO', [fromAddressHex]);
+  // 3. 查询 UTXO（节点 API 需要 Base58 格式）
+  const fromAddressBase58 = addressBytesToBase58(fromAddress);
+  const utxoResult = await client.call('wes_getUTXO', [fromAddressBase58]);
   
   if (!utxoResult || typeof utxoResult !== 'object') {
     throw new Error('Invalid UTXO response format');

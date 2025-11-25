@@ -8,14 +8,13 @@
 import { IClient } from '../../client/client';
 import { Wallet } from '../../wallet/wallet';
 import { bytesToHex, hexToBytes } from '../../utils/hex';
-// 强制依赖 contract-sdk-js 的 ABI 工具
+// 使用内部轻量 ABI helper，严格遵循 WES ABI 规范
+// 规范来源：weisyn.git/docs/components/core/ispc/abi-and-payload.md
 import {
   type ABIMethod,
   buildAndEncodePayload,
   type BuildPayloadOptions,
-} from '@weisyn/contract-sdk-js';
-
-// BuildPayloadOptions 已从 @weisyn/contract-sdk-js 导入
+} from '../../utils/abi';
 
 /**
  * 合约调用请求
@@ -154,7 +153,7 @@ export class ContractService {
    * 
    * **流程**：
    * 1. 验证请求参数
-   * 2. 构建 JSON payload（使用 contract-sdk-js 工具）
+   * 2. 构建 JSON payload（使用内部轻量 ABI helper，遵循 WES ABI 规范）
    * 3. 调用 `wes_callContract` API，设置 `return_unsigned_tx=true`
    * 4. 使用 Wallet 签名未签名交易
    * 5. 调用 `wes_sendRawTransaction` 提交已签名交易
@@ -174,8 +173,7 @@ export class ContractService {
       throw new Error('Wallet address does not match from address');
     }
 
-    // 4. 构建 JSON payload（使用 contract-sdk-js，强制依赖）
-    // 5. 构建 JSON payload
+    // 4. 构建 JSON payload（使用内部轻量 ABI helper，遵循 WES ABI 规范）
     const payloadOptions: BuildPayloadOptions = {
       includeFrom: true,
       from: request.from,
@@ -270,15 +268,14 @@ export class ContractService {
    * 
    * **流程**：
    * 1. 验证请求参数
-   * 2. 构建 JSON payload（使用 contract-sdk-js 工具）
+   * 2. 构建 JSON payload（使用内部轻量 ABI helper，遵循 WES ABI 规范）
    * 3. 调用 `wes_callContract` API（只读模式）
    */
   async queryContract(request: QueryContractRequest): Promise<any> {
     // 1. 参数验证
     this.validateQueryRequest(request);
 
-    // 2. 构建 JSON payload（使用 contract-sdk-js，强制依赖）
-    // 3. 构建 JSON payload
+    // 2. 构建 JSON payload（使用内部轻量 ABI helper，遵循 WES ABI 规范）
     let payloadBase64: string;
     try {
       payloadBase64 = buildAndEncodePayload(request.methodInfo ?? null, request.args);
@@ -333,7 +330,7 @@ export class ContractService {
     return true;
   }
 
-  // 已移除 buildPayloadFallback 函数
-  // 现在强制依赖 @weisyn/contract-sdk-js，使用其 buildAndEncodePayload 函数
+  // 使用内部轻量 ABI helper（src/utils/abi.ts），严格遵循 WES ABI 规范
+  // 不再依赖 @weisyn/contract-sdk-js
 }
 

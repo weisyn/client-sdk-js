@@ -1,7 +1,7 @@
 # WES 客户端应用开发指南 - JS/TS SDK 视角
 
 **版本**: v1.0.0  
-**最后更新**: 2025-01-23
+
 
 ---
 
@@ -534,7 +534,8 @@ const client = new Client({
 
 ```typescript
 // 批量查询 UTXO（并发调用）
-const utxos = await wesClient.batchGetUTXOs(utxoIDs);
+// 通过地址查询所有 UTXO（地址模型，与节点 API 对齐）
+const utxos = await wesClient.listUTXOs(address);
 
 // 批量查询资源
 const resources = await wesClient.batchGetResources(resourceIDs);
@@ -596,5 +597,5 @@ const client = new Client({
 
 ---
 
-**最后更新**: 2025-01-23  
+  
 **维护者**: WES Core Team

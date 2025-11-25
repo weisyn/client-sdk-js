@@ -64,6 +64,8 @@ export * from './utils/batch_helpers';
 export * from './utils/cache';
 export * from './utils/batch';
 export * from './utils/tx_utils';
+// ABI Helper（遵循 WES ABI 规范）
+export * from './utils/abi';
 
 // 权限服务
 export * from './services/permission/types';

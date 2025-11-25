@@ -1,7 +1,7 @@
 # Client SDK JS/TS - 语言与环境限制
 
 **版本**: v1.0.0  
-**最后更新**: 2025-01-23
+
 
 ---
 
@@ -169,6 +169,6 @@ import * as SDK from '@weisyn/client-sdk-js';
 
 ---
 
-**最后更新**: 2025-01-23  
+  
 **维护者**: WES Core Team
 

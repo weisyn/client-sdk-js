@@ -87,8 +87,10 @@ export class WESClientMock implements WESClient {
     }
   }
 
-  private getUTXOKey(outPoint: OutPoint): string {
-    return `${outPoint.txId}:${outPoint.outputIndex}`;
+  private getAddressKey(address: Uint8Array): string {
+    return Array.from(address)
+      .map((b) => b.toString(16).padStart(2, '0'))
+      .join('');
   }
 
   private getResourceKey(resourceId: Uint8Array): string {
@@ -97,30 +99,34 @@ export class WESClientMock implements WESClient {
       .join('');
   }
 
-  async getUTXO(outPoint: OutPoint): Promise<UTXO> {
+  /**
+   * 通过地址查询所有 UTXO（地址模型，与节点 API 对齐）
+   */
+  async listUTXOs(_address: Uint8Array): Promise<UTXO[]> {
     await this.delay();
     
     // 检查通用错误设置
-    if (this.errors.has('getUTXO')) {
-      throw this.errors.get('getUTXO')!;
+    if (this.errors.has('listUTXOs')) {
+      throw this.errors.get('listUTXOs')!;
     }
     
     // 检查通用响应设置
-    if (this.responses.has('getUTXO')) {
-      return this.responses.get('getUTXO') as UTXO;
+    if (this.responses.has('listUTXOs')) {
+      return this.responses.get('listUTXOs') as UTXO[];
     }
     
-    // 使用数据存储
-    const key = this.getUTXOKey(outPoint);
-    const utxo = this.utxos.get(key);
-    if (!utxo) {
-      throw new Error(`UTXO not found: ${key}`);
+    // 使用数据存储：返回该地址的所有 UTXO
+    // Mock 实现：假设所有 UTXO 都属于该地址（简化实现）
+    const utxos: UTXO[] = [];
+    
+    // 遍历所有 UTXO，检查是否属于该地址
+    // 注意：这是一个简化的 mock 实现，实际应该根据 UTXO 的锁定条件判断
+    for (const [, utxo] of this.utxos.entries()) {
+      // 简化：假设所有 UTXO 都属于该地址
+      utxos.push(utxo);
     }
-    return utxo;
-  }
-
-  async getUTXOs(outPoints: OutPoint[]): Promise<UTXO[]> {
-    return Promise.all(outPoints.map((op) => this.getUTXO(op)));
+    
+    return utxos;
   }
 
   async getResource(resourceId: Uint8Array): Promise<ResourceInfo> {
@@ -293,9 +299,6 @@ export class WESClientMock implements WESClient {
     };
   }
 
-  async batchGetUTXOs(outPoints: OutPoint[]): Promise<UTXO[]> {
-    return Promise.all(outPoints.map((op) => this.getUTXO(op)));
-  }
 
   async batchGetResources(resourceIds: Uint8Array[]): Promise<ResourceInfo[]> {
     return Promise.all(resourceIds.map((id) => this.getResource(id)));
@@ -314,10 +317,14 @@ export class WESClientMock implements WESClient {
   // ========== Mock 数据管理方法 ==========
 
   /**
-   * 添加 Mock UTXO
+   * 添加 Mock UTXO（通过地址）
+   * 
+   * 注意：由于 UTXO 查询已改为地址模型，这里使用地址作为 key
+   * 如果需要通过 outPoint 添加，需要先获取地址
    */
-  addUTXO(outPoint: OutPoint, utxo: UTXO): void {
-    const key = this.getUTXOKey(outPoint);
+  addUTXO(address: Uint8Array, utxo: UTXO): void {
+    const key = this.getAddressKey(address);
+    // 存储时使用地址作为 key，但保留完整的 UTXO 信息（包括 outPoint）
     this.utxos.set(key, utxo);
   }
 

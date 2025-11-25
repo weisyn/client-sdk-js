@@ -144,17 +144,17 @@ export async function batchGetResourcesMap(
 }
 
 /**
- * 批量查询 UTXO 并返回映射
+ * 通过地址查询 UTXO 并返回映射
  * 
  * @param client WESClient 实例
- * @param outPoints OutPoint 列表
+ * @param address 地址（20字节）
  * @returns Map<"txId:outputIndex", UTXO>
  */
-export async function batchGetUTXOsMap(
+export async function listUTXOsMap(
   client: WESClient,
-  outPoints: OutPoint[]
+  address: Uint8Array
 ): Promise<Map<string, UTXO>> {
-  const utxos = await client.batchGetUTXOs(outPoints);
+  const utxos = await client.listUTXOs(address);
   const map = new Map<string, UTXO>();
 
   utxos.forEach((utxo) => {

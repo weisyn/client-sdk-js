@@ -9,7 +9,7 @@
 
 import { IClient } from '../../client/client';
 import { bytesToHex, hexToBytes } from '../../utils/hex';
-import { addressToHex } from '../../utils/address';
+import { addressToHex, addressBytesToBase58 } from '../../utils/address';
 
 /**
  * UTXO 信息（从 wes_getUTXO API 返回）
@@ -89,11 +89,11 @@ export async function buildTransferTransaction(
   amount: bigint | number,
   tokenID: Uint8Array | null
 ): Promise<Uint8Array> {
-  // 1. 将地址转换为 Base58 格式（简化实现，实际应该使用 AddressManager）
-  const fromAddressHex = addressToHex(fromAddress);
+  // 1. 将地址转换为 Base58 格式（节点 API 需要 Base58 格式）
+  const fromAddressBase58 = addressBytesToBase58(fromAddress);
 
   // 2. 查询 UTXO
-  const utxoResult = await client.call('wes_getUTXO', [fromAddressHex]);
+  const utxoResult = await client.call('wes_getUTXO', [fromAddressBase58]);
   
   if (!utxoResult || typeof utxoResult !== 'object') {
     throw new Error('Invalid UTXO response format');

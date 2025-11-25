@@ -1,0 +1,39 @@
+name: ABI Conformance Check
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  abi-conformance:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: recursive
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Run ESLint (检查禁止 import contract-sdk-js)
+        run: npm run lint
+      
+      - name: Check for contract-sdk-js imports
+        run: |
+          if grep -r "@weisyn/contract-sdk-js" src/; then
+            echo "❌ 发现违规导入：client-sdk-js 不得 import @weisyn/contract-sdk-js"
+            exit 1
+          fi
+          echo "✅ 未发现违规导入"
+      
+      - name: Run ABI Helper Conformance Tests
+        run: npm run test:unit -- abi.helper.conformance
+

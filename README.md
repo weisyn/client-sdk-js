@@ -156,8 +156,8 @@ const wesClient = new WESClient({
 });
 
 // UTXO 操作
-const utxo = await wesClient.getUTXO(utxoID);
-const utxos = await wesClient.batchGetUTXOs(utxoIDs);
+// 通过地址查询所有 UTXO（地址模型，与节点 API 对齐）
+const utxos = await wesClient.listUTXOs(address);
 
 // 资源操作
 const resource = await wesClient.getResource(contentHash);

@@ -22,7 +22,7 @@ import { buildTransferTransaction } from './tx_builder';
 import { buildBatchTransferTransaction } from './batch_transfer';
 import { buildBurnTransaction } from './burn';
 import { bytesToHex, hexToBytes } from '../../utils/hex';
-import { addressToHex } from '../../utils/address';
+import { addressToHex, addressBytesToBase58 } from '../../utils/address';
 
 /**
  * Token 服务
@@ -330,9 +330,9 @@ export class TokenService {
       throw new Error('Address must be 20 bytes');
     }
 
-    // 2. 构建查询参数
-    const addressHex = addressToHex(address);
-    const params = [addressHex, 'latest']; // blockParameter: "latest" | "pending" | blockNumber
+    // 2. 构建查询参数（节点 API 需要 Base58 格式）
+    const addressBase58 = addressBytesToBase58(address);
+    const params = [addressBase58, 'latest']; // blockParameter: "latest" | "pending" | blockNumber
     // TODO: tokenId 参数预留，未来可能用于查询特定代币余额
 
     // 3. 调用 JSON-RPC 方法
@@ -342,23 +342,33 @@ export class TokenService {
       throw new Error('Invalid balance response');
     }
 
-    // 4. 解析结果（可能是字符串或数字）
+    // 4. 解析结果 - wes_getBalance 返回包含 balance 字段的对象
     let balanceStr: string;
-    if (typeof result === 'string') {
+    if (typeof result === 'object' && result !== null) {
+      // 对象格式：{ balance: "0x..." } 或 { balance: "..." }
+      const balanceObj = result as { balance?: string | number };
+      const balanceValue = balanceObj.balance;
+      if (balanceValue === undefined || balanceValue === null) {
+        throw new Error(`Invalid balance response format: balance field not found, got ${JSON.stringify(result)}`);
+      }
+      balanceStr = typeof balanceValue === 'string' ? balanceValue : balanceValue.toString();
+    } else if (typeof result === 'string') {
       balanceStr = result;
     } else if (typeof result === 'number') {
       balanceStr = result.toString();
     } else if (typeof result === 'bigint') {
       return result;
     } else {
-      throw new Error('Invalid balance response format');
+      throw new Error(`Invalid balance response format: ${typeof result}, value: ${JSON.stringify(result)}`);
     }
 
-    // 5. 转换为 bigint
+    // 5. 转换为 bigint（balance 可能是十六进制字符串，如 "0x4a817c800"）
     try {
-      return BigInt(balanceStr);
+      // 移除 0x 前缀（如果有）
+      const cleanBalanceStr = balanceStr.startsWith('0x') ? balanceStr.slice(2) : balanceStr;
+      return BigInt('0x' + cleanBalanceStr);
     } catch (error) {
-      throw new Error(`Failed to parse balance: ${balanceStr}`);
+      throw new Error(`Failed to parse balance: ${balanceStr}, error: ${error}`);
     }
   }
 

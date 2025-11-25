@@ -8,7 +8,6 @@
 import { IClient } from './client';
 import { NetworkError, JSONRPCError } from './errors';
 import {
-  OutPoint,
   UTXO,
   ResourceInfo,
   ResourceFilters,
@@ -21,7 +20,8 @@ import {
   SubmitTxResult,
   EventSubscription,
 } from './wesclient-types';
-import { batchGetUTXOsSimple, batchGetResourcesSimple } from '../utils/batch_helpers';
+import { batchGetResourcesSimple } from '../utils/batch_helpers';
+import { addressBytesToBase58 } from '../utils/address';
 
 /**
  * WESClient 错误码
@@ -54,9 +54,8 @@ export class WESClientError extends Error {
  * 提供类型化的 RPC 封装，避免直接使用 call(method, params)
  */
 export interface WESClient {
-  // UTXO 操作
-  getUTXO(outPoint: OutPoint): Promise<UTXO>;
-  getUTXOs(outPoints: OutPoint[]): Promise<UTXO[]>;
+  // UTXO 操作（地址模型，与节点 API 对齐）
+  listUTXOs(address: Uint8Array): Promise<UTXO[]>;
 
   // 资源操作（封装）
   getResource(resourceId: Uint8Array): Promise<ResourceInfo>;
@@ -76,7 +75,6 @@ export interface WESClient {
 
   // 批量能力（利用 utils/batch 封装）
   supportsBatchQuery: boolean;
-  batchGetUTXOs(outPoints: OutPoint[]): Promise<UTXO[]>;
   batchGetResources(resourceIds: Uint8Array[]): Promise<ResourceInfo[]>;
 
   // 底层通道（不推荐上层直接使用）
@@ -116,54 +114,36 @@ export class WESClientImpl implements WESClient {
 
   constructor(private readonly client: IClient) {}
 
-  async getUTXO(outPoint: OutPoint): Promise<UTXO> {
+  /**
+   * 通过地址查询所有 UTXO
+   * 
+   * 这是节点 API wes_getUTXO 的原生用法，直接匹配节点 API 设计
+   * 节点 API: wes_getUTXO(address: string) -> { utxos: [...] }
+   */
+  async listUTXOs(address: Uint8Array): Promise<UTXO[]> {
     try {
-      // 注意：当前节点实现中，wes_getUTXO 接受地址参数，而不是 OutPoint
-      // 这里我们假设未来会有支持 OutPoint 的 RPC，或者需要先通过其他方式获取
-      // TODO: 根据实际节点 RPC 实现调整
-      // 当前实现：尝试使用 outpoint 格式作为参数
-      const params = { txId: outPoint.txId, outputIndex: outPoint.outputIndex };
-      const raw = await this.client.call('wes_getUTXO', [params]);
+      // 将地址转换为 Base58 格式
+      const addressBase58 = addressBytesToBase58(address);
       
-      // 如果返回的是数组格式（多个 UTXO），取第一个匹配的
-      if (Array.isArray(raw)) {
-        const utxo = raw.find((u: any) => {
-          const outpointStr = u.outpoint || '';
-          const [txId, index] = outpointStr.split(':');
-          return txId === outPoint.txId && parseInt(index) === outPoint.outputIndex;
-        });
-        if (utxo) {
-          return decodeUTXO(utxo);
-        }
+      // 调用节点 API wes_getUTXO(address)
+      const raw = await this.client.call('wes_getUTXO', [addressBase58]);
+      
+      // 解析返回的 UTXO 列表
+      if (!raw || typeof raw !== 'object') {
+        throw new WESClientError('DECODE_FAILED', 'Invalid UTXO response format');
       }
       
-      // 如果返回的是对象格式
-      if (raw && typeof raw === 'object' && !Array.isArray(raw)) {
-        // 检查是否是 { utxos: [...] } 格式
-        if ('utxos' in raw && Array.isArray(raw.utxos)) {
-          const utxo = raw.utxos.find((u: any) => {
-            const outpointStr = u.outpoint || '';
-            const [txId, index] = outpointStr.split(':');
-            return txId === outPoint.txId && parseInt(index) === outPoint.outputIndex;
-          });
-          if (utxo) {
-            return decodeUTXO(utxo);
-          }
-        } else {
-          // 直接是 UTXO 对象
-          return decodeUTXO(raw);
-        }
+      // 节点返回格式：{ utxos: [...] }
+      const utxosArray = (raw as any).utxos || [];
+      if (!Array.isArray(utxosArray)) {
+        throw new WESClientError('DECODE_FAILED', 'Invalid UTXO response format: expected utxos array');
       }
       
-      throw new WESClientError('NOT_FOUND', `UTXO not found: ${outPoint.txId}:${outPoint.outputIndex}`);
+      // 解码每个 UTXO
+      return utxosArray.map((item: any) => decodeUTXO(item));
     } catch (err) {
       throw wrapRPCError('wes_getUTXO', err);
     }
-  }
-
-  async getUTXOs(outPoints: OutPoint[]): Promise<UTXO[]> {
-    // 并发调用多个 getUTXO
-    return Promise.all(outPoints.map((op) => this.getUTXO(op)));
   }
 
   async getResource(resourceId: Uint8Array): Promise<ResourceInfo> {
@@ -173,11 +153,11 @@ export class WESClientImpl implements WESClient {
         .map((b) => b.toString(16).padStart(2, '0'))
         .join('');
       
-      const params = { resourceId: `0x${resourceIdHex}` };
-      const raw = await this.client.call('wes_getResourceByContentHash', [params]);
+      // 使用 wes_getResource(resourceId) 而不是 wes_getResourceByContentHash
+      const raw = await this.client.call('wes_getResource', [`0x${resourceIdHex}`]);
       return decodeResourceInfo(raw);
     } catch (err) {
-      throw wrapRPCError('wes_getResourceByContentHash', err);
+      throw wrapRPCError('wes_getResource', err);
     }
   }
 
@@ -321,10 +301,6 @@ export class WESClientImpl implements WESClient {
     }
   }
 
-  async batchGetUTXOs(outPoints: OutPoint[]): Promise<UTXO[]> {
-    // 使用 utils/batch 进行可控并发的批量查询
-    return batchGetUTXOsSimple(this, outPoints);
-  }
 
   async batchGetResources(resourceIds: Uint8Array[]): Promise<ResourceInfo[]> {
     // 使用 utils/batch 进行可控并发的批量查询

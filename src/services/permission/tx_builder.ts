@@ -7,8 +7,8 @@
  */
 
 import { IClient } from '../../client/client';
-import { bytesToHex } from '../../utils/hex';
-import { isValidAddress } from '../../utils/address';
+import { bytesToHex, hexToBytes } from '../../utils/hex';
+import { isValidAddress, addressBytesToBase58 } from '../../utils/address';
 import type {
   TransferOwnershipIntent,
   UpdateCollaboratorsIntent,
@@ -16,6 +16,63 @@ import type {
   SetTimeOrHeightLockIntent,
   UnsignedTransaction,
 } from './types';
+
+/**
+ * 通过 resourceId (txId:outputIndex) 查询资源 UTXO
+ * 
+ * 由于节点 API wes_getUTXO 只接受地址参数，我们需要：
+ * 1. 先查询交易获取输出的地址
+ * 2. 然后通过地址查询 UTXO 列表
+ * 3. 从列表中过滤出匹配的 UTXO
+ */
+async function queryResourceUTXOByOutPoint(
+  client: IClient,
+  txId: string,
+  outputIndex: number
+): Promise<any> {
+  // 1. 查询交易以获取输出地址
+  const txResult = await client.call('wes_getTransactionByHash', [{ txId }]);
+  if (!txResult || typeof txResult !== 'object') {
+    throw new Error('Invalid transaction response format');
+  }
+  const outputs = txResult.outputs || txResult.Outputs || [];
+  if (outputIndex >= outputs.length) {
+    throw new Error(`Output index ${outputIndex} out of range`);
+  }
+  const output = outputs[outputIndex];
+  const owner = output.owner || output.Owner;
+  if (!owner) {
+    throw new Error('Output owner not found');
+  }
+  
+  // 2. 将 owner 转换为 Uint8Array
+  const outputAddress = typeof owner === 'string'
+    ? hexToBytes(owner.startsWith('0x') ? owner.slice(2) : owner)
+    : new Uint8Array(owner);
+
+  // 3. 通过地址查询 UTXO 列表
+  const addressBase58 = addressBytesToBase58(outputAddress);
+  const utxoResult = await client.call('wes_getUTXO', [addressBase58]);
+  
+  if (!utxoResult || typeof utxoResult !== 'object') {
+    throw new Error('Invalid UTXO response format');
+  }
+
+  // 4. 从 UTXO 列表中查找匹配的 UTXO
+  const utxosArray = utxoResult.utxos || [];
+  const utxo = utxosArray.find((u: any) => {
+    const outpointStr = u.outpoint || '';
+    const [uTxId, uIndexStr] = outpointStr.split(':');
+    const uIndex = parseInt(uIndexStr, 10);
+    return uTxId === txId && uIndex === outputIndex;
+  });
+
+  if (!utxo) {
+    throw new Error(`Resource UTXO not found: ${txId}:${outputIndex}. The UTXO may have been spent or the resource ID is incorrect.`);
+  }
+
+  return utxo;
+}
 
 /**
  * 构建所有权转移交易
@@ -44,10 +101,10 @@ export async function buildTransferOwnershipTx(
     throw new Error(`Invalid resourceId format: ${intent.resourceId}. Expected format: txId:outputIndex`);
   }
 
-  // 2. 查询当前资源 UTXO
-  let utxoResult: any;
+  // 2. 查询资源 UTXO（通过 outPoint）
+  let utxo: any;
   try {
-    utxoResult = await client.call('wes_getUTXO', [{ txId, outputIndex }]);
+    utxo = await queryResourceUTXOByOutPoint(client, txId, outputIndex);
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : String(error);
     if (errorMsg.includes('not found') || errorMsg.includes('NOT_FOUND')) {
@@ -55,14 +112,6 @@ export async function buildTransferOwnershipTx(
     }
     throw new Error(`Failed to query UTXO: ${errorMsg}`);
   }
-  
-  if (!utxoResult || typeof utxoResult !== 'object') {
-    throw new Error('Invalid UTXO response format');
-  }
-
-  // 解析 UTXO 数据
-  const utxoData = utxoResult;
-  const utxo = Array.isArray(utxoData.utxos) ? utxoData.utxos[0] : utxoData;
   
   if (!utxo || !utxo.output) {
     throw new Error(`Resource UTXO not found: ${intent.resourceId}. The UTXO may have been spent or the resource ID is incorrect.`);
@@ -75,7 +124,7 @@ export async function buildTransferOwnershipTx(
     throw new Error(`Resource output not found in UTXO: ${intent.resourceId}`);
   }
 
-  // 3. 转换新所有者地址为 hex
+  // 5. 转换新所有者地址为 hex
   let newOwnerAddressHex: string;
   if (intent.newOwnerAddress.startsWith('0x')) {
     newOwnerAddressHex = intent.newOwnerAddress;
@@ -93,7 +142,7 @@ export async function buildTransferOwnershipTx(
     }
   }
 
-  // 4. 构建新的锁定条件（SingleKeyLock）
+  // 6. 构建新的锁定条件（SingleKeyLock）
   const newLockingConditions = [
     {
       single_key_lock: {
@@ -104,7 +153,7 @@ export async function buildTransferOwnershipTx(
     },
   ];
 
-  // 5. 构建交易草稿
+  // 7. 构建交易草稿
   const draft = {
     sign_mode: 'defer_sign',
     inputs: [
@@ -167,10 +216,10 @@ export async function buildUpdateCollaboratorsTx(
     throw new Error(`Invalid resourceId format: ${intent.resourceId}. Expected format: txId:outputIndex`);
   }
 
-  // 2. 查询当前资源 UTXO
-  let utxoResult: any;
+  // 2. 查询资源 UTXO（通过 outPoint）
+  let utxo: any;
   try {
-    utxoResult = await client.call('wes_getUTXO', [{ txId, outputIndex }]);
+    utxo = await queryResourceUTXOByOutPoint(client, txId, outputIndex);
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : String(error);
     if (errorMsg.includes('not found') || errorMsg.includes('NOT_FOUND')) {
@@ -178,13 +227,6 @@ export async function buildUpdateCollaboratorsTx(
     }
     throw new Error(`Failed to query UTXO: ${errorMsg}`);
   }
-  
-  if (!utxoResult || typeof utxoResult !== 'object') {
-    throw new Error('Invalid UTXO response format');
-  }
-
-  const utxoData = utxoResult;
-  const utxo = Array.isArray(utxoData.utxos) ? utxoData.utxos[0] : utxoData;
   
   if (!utxo || !utxo.output) {
     throw new Error(`Resource UTXO not found: ${intent.resourceId}. The UTXO may have been spent or the resource ID is incorrect.`);
@@ -345,10 +387,10 @@ export async function buildGrantDelegationTx(
     throw new Error(`Invalid resourceId format: ${intent.resourceId}. Expected format: txId:outputIndex`);
   }
 
-  // 2. 查询当前资源 UTXO
-  let utxoResult: any;
+  // 2. 查询资源 UTXO（通过 outPoint）
+  let utxo: any;
   try {
-    utxoResult = await client.call('wes_getUTXO', [{ txId, outputIndex }]);
+    utxo = await queryResourceUTXOByOutPoint(client, txId, outputIndex);
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : String(error);
     if (errorMsg.includes('not found') || errorMsg.includes('NOT_FOUND')) {
@@ -356,13 +398,6 @@ export async function buildGrantDelegationTx(
     }
     throw new Error(`Failed to query UTXO: ${errorMsg}`);
   }
-  
-  if (!utxoResult || typeof utxoResult !== 'object') {
-    throw new Error('Invalid UTXO response format');
-  }
-
-  const utxoData = utxoResult;
-  const utxo = Array.isArray(utxoData.utxos) ? utxoData.utxos[0] : utxoData;
   
   if (!utxo || !utxo.output) {
     throw new Error(`Resource UTXO not found: ${intent.resourceId}. The UTXO may have been spent or the resource ID is incorrect.`);
@@ -386,11 +421,11 @@ export async function buildGrantDelegationTx(
   // 尝试从 SingleKeyLock 或 MultiKeyLock 提取所有者
   for (const condition of currentLockingConditions) {
     if (condition.single_key_lock) {
-      originalOwnerHex = condition.single_key_lock.required_address_hash;
-      if (!originalOwnerHex.startsWith('0x')) {
-        originalOwnerHex = '0x' + originalOwnerHex;
+      const addressHash = condition.single_key_lock.required_address_hash;
+      if (addressHash) {
+        originalOwnerHex = addressHash.startsWith('0x') ? addressHash : '0x' + addressHash;
+        break;
       }
-      break;
     } else if (condition.multi_key_lock) {
       // MultiKeyLock：使用第一个授权密钥作为原始所有者标识
       const keys = condition.multi_key_lock.authorized_keys || [];
@@ -522,15 +557,14 @@ export async function buildSetLockTx(
     throw new Error('Cannot set both unlockTimestamp and unlockHeight');
   }
 
-  // 3. 查询当前资源 UTXO
-  const utxoResult = await client.call('wes_getUTXO', [{ txId, outputIndex }]);
-  
-  if (!utxoResult || typeof utxoResult !== 'object') {
-    throw new Error('Invalid UTXO response format');
+  // 3. 查询资源 UTXO（通过 outPoint）
+  let utxo: any;
+  try {
+    utxo = await queryResourceUTXOByOutPoint(client, txId, outputIndex);
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    throw new Error(`Failed to query UTXO: ${errorMsg}`);
   }
-
-  const utxoData = utxoResult;
-  const utxo = Array.isArray(utxoData.utxos) ? utxoData.utxos[0] : utxoData;
   
   if (!utxo || !utxo.output) {
     throw new Error(`Resource UTXO not found: ${intent.resourceId}`);

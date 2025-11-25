@@ -13,6 +13,22 @@
     "plugin:@typescript-eslint/recommended-requiring-type-checking"
   ],
   "rules": {
+    // 禁止从 contract-sdk-js 导入 ABI 相关功能
+    "no-restricted-imports": [
+      "error",
+      {
+        "paths": [
+          {
+            "name": "@weisyn/contract-sdk-js",
+            "message": "client-sdk-js 不得 import @weisyn/contract-sdk-js 来获取 ABI 能力。请使用 src/utils/abi.ts 中的内部 ABI helper。"
+          },
+          {
+            "name": "@weisyn/contract-sdk-js/framework/utils/abi",
+            "message": "client-sdk-js 不得 import contract-sdk-js 的 ABI 工具。请使用 src/utils/abi.ts 中的内部 ABI helper。"
+          }
+        ]
+      }
+    ],
     "@typescript-eslint/no-unused-vars": [
       "error",
       {
