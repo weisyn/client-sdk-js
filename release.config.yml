@@ -19,7 +19,9 @@ exclude:
   - "*.swo"
   - "_dev"
   - "_dev_old"
-  - "tests"
+  # 注意：tests 目录不应该被排除，因为 Jest 配置可能需要它
+  # 如果确实需要排除，请确保 Jest 配置能正确处理 tests 目录不存在的情况
+  # - "tests"
   - "coverage"
   - ".nyc_output"
 

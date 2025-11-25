@@ -29,6 +29,7 @@ describe('Token Service Integration Tests', () => {
   });
 
   beforeEach(async () => {
+    jest.setTimeout(60000); // 增加超时时间到 60 秒
     // 设置测试客户端
     client = await setupTestClient();
     

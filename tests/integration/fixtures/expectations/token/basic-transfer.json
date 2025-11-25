@@ -1,0 +1,26 @@
+{
+  "scenario": "basic-transfer",
+  "description": "USER_A 向 USER_B 转账 100 WES",
+  "expected": {
+    "fromBalanceBefore": 1000000,
+    "toBalanceBefore": 0,
+    "transferAmount": 100000,
+    "fromBalanceAfter": 900000,
+    "toBalanceAfter": 100000,
+    "transactionStatus": "confirmed",
+    "events": [
+      {
+        "type": "Transfer",
+        "from": "USER_A",
+        "to": "USER_B",
+        "amount": 100000
+      }
+    ]
+  },
+  "notes": [
+    "fromBalanceAfter 考虑了交易手续费",
+    "事件中的 from/to 应该是地址字符串",
+    "amount 单位是 wei（最小单位）"
+  ]
+}
+

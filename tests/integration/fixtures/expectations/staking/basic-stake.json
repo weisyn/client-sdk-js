@@ -1,0 +1,24 @@
+{
+  "scenario": "basic-stake",
+  "description": "USER_A 质押 1000 WES",
+  "expected": {
+    "balanceBefore": 1000000,
+    "stakeAmount": 1000000,
+    "balanceAfter": 0,
+    "stakedAmount": 1000000,
+    "transactionStatus": "confirmed",
+    "events": [
+      {
+        "type": "Stake",
+        "from": "USER_A",
+        "amount": 1000000
+      }
+    ]
+  },
+  "notes": [
+    "质押后可用余额应该为 0",
+    "质押金额应该等于质押数量",
+    "事件应该包含质押信息"
+  ]
+}
+

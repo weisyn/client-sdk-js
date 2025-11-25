@@ -1,0 +1,48 @@
+{
+  "methodNotFound": {
+    "code": "METHOD_NOT_FOUND",
+    "layer": ["SDK_HTTP_ERROR", "COMMON_VALIDATION_ERROR"],
+    "httpStatus": 404,
+    "description": "调用的 JSON-RPC 方法不存在（节点可能返回 SDK_HTTP_ERROR 或 COMMON_VALIDATION_ERROR）"
+  },
+  "invalidParams": {
+    "code": "INVALID_PARAMS",
+    "layer": "SDK_HTTP_ERROR",
+    "httpStatus": 400,
+    "description": "请求参数无效"
+  },
+  "insufficientBalance": {
+    "code": "INSUFFICIENT_BALANCE",
+    "layer": "SDK_HTTP_ERROR",
+    "httpStatus": 400,
+    "description": "账户余额不足"
+  },
+  "resourceNotFound": {
+    "code": "RESOURCE_NOT_FOUND",
+    "layer": "SDK_HTTP_ERROR",
+    "httpStatus": 404,
+    "description": "请求的资源不存在"
+  },
+  "transactionFailed": {
+    "code": "TRANSACTION_FAILED",
+    "layer": "SDK_HTTP_ERROR",
+    "httpStatus": 400,
+    "description": "交易执行失败"
+  },
+  "websocketConnectionError": {
+    "code": "WEBSOCKET_CONNECTION_ERROR",
+    "layer": "SDK_WEBSOCKET_ERROR",
+    "description": "WebSocket 连接错误"
+  },
+  "websocketSubscriptionError": {
+    "code": "WEBSOCKET_SUBSCRIPTION_ERROR",
+    "layer": "SDK_WEBSOCKET_ERROR",
+    "description": "WebSocket 订阅错误"
+  },
+  "grpcError": {
+    "code": "GRPC_ERROR",
+    "layer": "SDK_GRPC_ERROR",
+    "description": "gRPC 调用错误（当前仅框架支持）"
+  }
+}
+

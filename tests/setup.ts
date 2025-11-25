@@ -166,7 +166,7 @@ jest.mock('@noble/secp256k1', () => {
 });
 
 // Mock 全局变量（如果需要）
-global.console = {
+(global as any).console = {
   ...console,
   // 在测试中静默某些日志
   log: jest.fn(),

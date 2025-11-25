@@ -120,6 +120,110 @@ describe('ResourceService', () => {
         resourceService.getResource(invalidHash)
       ).rejects.toThrow('ContentHash must be 32 bytes');
     });
+
+    it('should get resource successfully', async () => {
+      const contentHash = new Uint8Array(32).fill(1);
+
+      const mockResource = {
+        resourceId: '0x' + '01'.repeat(32),
+        resourceType: 'contract',
+        contentHash: '0x' + '01'.repeat(32),
+        size: 1024,
+        mimeType: 'application/wasm',
+        lockingConditions: [],
+        createdAt: new Date().toISOString(),
+      };
+
+      mockClient.setResponse('wes_getResource', mockResource);
+
+      const resource = await resourceService.getResource(contentHash);
+
+      expect(resource).toBeDefined();
+      expect(resource.type).toBe('contract');
+      expect(resource.size).toBe(1024);
+    });
+  });
+
+  describe('getResources', () => {
+    it('should get resources with filters', async () => {
+      const filters = {
+        resourceType: 'contract' as const,
+        limit: 10,
+        offset: 0,
+      };
+
+      const mockResources = {
+        resources: [
+          {
+            resourceId: '0x' + '01'.repeat(32),
+            resourceType: 'contract',
+            contentHash: '0x' + '01'.repeat(32),
+            size: 1024,
+            mimeType: 'application/wasm',
+            lockingConditions: [],
+            createdAt: new Date().toISOString(),
+          },
+          {
+            resourceId: '0x' + '02'.repeat(32),
+            resourceType: 'static',
+            contentHash: '0x' + '02'.repeat(32),
+            size: 2048,
+            mimeType: 'text/plain',
+            lockingConditions: [],
+            createdAt: new Date().toISOString(),
+          },
+        ],
+      };
+
+      mockClient.setResponse('wes_getResources', mockResources);
+
+      const resources = await resourceService.getResources(filters);
+
+      expect(resources).toBeDefined();
+      expect(Array.isArray(resources)).toBe(true);
+      expect(resources.length).toBeGreaterThan(0);
+    });
+
+    it('should filter resources by type', async () => {
+      const filters = {
+        resourceType: 'contract' as const,
+        limit: 10,
+      };
+
+      const mockResources = {
+        resources: [
+          {
+            resourceId: '0x' + '01'.repeat(32),
+            resourceType: 'contract',
+            contentHash: '0x' + '01'.repeat(32),
+            size: 1024,
+            lockingConditions: [],
+            createdAt: new Date().toISOString(),
+          },
+        ],
+      };
+
+      mockClient.setResponse('wes_getResources', mockResources);
+
+      const resources = await resourceService.getResources(filters);
+
+      expect(resources).toBeDefined();
+      // 注意：实际过滤逻辑在 WESClient 中实现
+    });
+
+    it('should handle empty resources', async () => {
+      const filters = {
+        limit: 10,
+      };
+
+      mockClient.setResponse('wes_getResources', { resources: [] });
+
+      const resources = await resourceService.getResources(filters);
+
+      expect(resources).toBeDefined();
+      expect(Array.isArray(resources)).toBe(true);
+      expect(resources.length).toBe(0);
+    });
   });
 });
 

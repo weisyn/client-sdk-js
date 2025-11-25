@@ -134,8 +134,8 @@ export async function fundTestAccount(
   await client.call('wes_startMining', [addressBase58]);
 
   // 3. 等待区块生成并确认 UTXO 可用
-  const maxWait = 10000; // 10秒
-  const checkInterval = 500; // 500ms
+  const maxWait = 30000; // 30秒（增加等待时间，挖矿可能需要更长时间）
+  const checkInterval = 1000; // 1秒
   const deadline = Date.now() + maxWait;
 
   while (Date.now() < deadline) {

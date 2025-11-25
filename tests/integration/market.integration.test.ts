@@ -25,6 +25,7 @@ describe('Market Service Integration Tests', () => {
   });
 
   beforeEach(async () => {
+    jest.setTimeout(60000); // 增加超时时间到 60 秒
     client = await setupTestClient();
     wallet = await createTestWallet();
     await fundTestAccount(client, wallet.address);
