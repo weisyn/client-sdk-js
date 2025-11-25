@@ -5,7 +5,8 @@
 import { WESClientImpl, WESClientError } from '../../src/client/wesclient';
 import { MockClient } from '../mocks/client';
 import { JSONRPCError } from '../../src/client/errors';
-import type { OutPoint } from '../../src/client/wesclient-types';
+// OutPoint imported but not used in tests - keeping for potential future use
+// import type { OutPoint } from '../../src/client/wesclient-types';
 
 describe('WESClientImpl Failure Scenarios', () => {
   let wesClient: WESClientImpl;
