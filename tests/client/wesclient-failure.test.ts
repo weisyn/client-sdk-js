@@ -83,11 +83,9 @@ describe('WESClientImpl Failure Scenarios', () => {
     it('should handle invalid params error', async () => {
       const address = new Uint8Array(19); // 无效的地址长度（应该是20字节）
 
-      jest.spyOn(mockClient, 'call').mockRejectedValue(
-        new JSONRPCError('Invalid params', -32602)
-      );
-
-      await expect(wesClient.listUTXOs(address)).rejects.toThrow(WESClientError);
+      // addressBytesToBase58 会在调用 RPC 之前验证地址长度，抛出普通 Error
+      // 这个错误不会被 wrapRPCError 包装，因为它在 RPC 调用之前就抛出了
+      await expect(wesClient.listUTXOs(address)).rejects.toThrow(Error);
     });
   });
 

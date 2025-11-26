@@ -27,6 +27,9 @@ export type {
   SubmitTxResult,
   ResourceType,
   TransactionStatus,
+  LockingCondition,
+  TxInput,
+  TxOutput,
 } from "./client/wesclient-types";
 
 // 业务服务
@@ -48,6 +51,8 @@ export * from "./services/staking/types";
 export * from "./services/market/types";
 export * from "./services/governance/types";
 export * from "./services/resource/types";
+// 导出 Resource 服务的 LockingCondition（业务层完整定义）
+export type { LockingCondition as ResourceLockingCondition } from "./services/resource/locking";
 export * from "./services/contract/types";
 export * from "./services/transaction/types";
 export * from "./services/event/types";

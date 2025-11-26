@@ -150,6 +150,9 @@ export interface ResourceView {
   expiryTimestamp?: number;
   isImmutable: boolean;
 
+  /** ✅ 新增：锁定条件列表（从 UTXO 查询获取） */
+  lockingConditions?: import("./locking").LockingCondition[];
+
   /** 使用统计 */
   currentReferenceCount: number;
   totalReferenceTimes: number;

@@ -5,7 +5,7 @@
 import { Cache, cachedQuery } from '../../src/utils/cache';
 
 describe('Cache', () => {
-  let cache: Cache<string, string>;
+  let cache: Cache<string | Uint8Array, string>;
 
   beforeEach(() => {
     cache = new Cache({ defaultTTL: 1000 }); // 1 秒 TTL

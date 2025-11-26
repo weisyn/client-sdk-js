@@ -9,7 +9,7 @@
 // rollup 的 TypeScript 插件应该能够正确处理这些类型导入
 import type { WESClient } from '../src/client/wesclient';
 import type {
-  // OutPoint, // 未使用，暂时注释
+  OutPoint,
   UTXO,
   ResourceInfo,
   ResourceFilters,
@@ -127,6 +127,35 @@ export class WESClientMock implements WESClient {
     }
     
     return utxos;
+  }
+
+  /**
+   * 通过 OutPoint 获取单个 UTXO
+   */
+  async getUTXO(outPoint: OutPoint): Promise<UTXO | null> {
+    await this.delay();
+    
+    // 检查通用错误设置
+    if (this.errors.has('getUTXO')) {
+      throw this.errors.get('getUTXO')!;
+    }
+    
+    // 检查通用响应设置
+    if (this.responses.has('getUTXO')) {
+      return this.responses.get('getUTXO') as UTXO | null;
+    }
+    
+    // 从存储中查找匹配的 UTXO
+    for (const [, utxo] of this.utxos.entries()) {
+      if (
+        utxo.outPoint.txId === outPoint.txId &&
+        utxo.outPoint.outputIndex === outPoint.outputIndex
+      ) {
+        return utxo;
+      }
+    }
+    
+    return null;
   }
 
   async getResource(resourceId: Uint8Array): Promise<ResourceInfo> {

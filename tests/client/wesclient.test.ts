@@ -4,6 +4,7 @@
 
 import { WESClientImpl, WESClientError } from '../../src/client/wesclient';
 import { MockClient } from '../mocks/client';
+import { JSONRPCError } from '../../src/client/errors';
 // OutPoint imported but not used in tests - keeping for potential future use
 // import type { OutPoint } from '../../src/client/wesclient-types';
 
@@ -131,10 +132,9 @@ describe('WESClientImpl', () => {
       };
 
       // 模拟 RPC 不存在
-      jest.spyOn(mockClient, 'call').mockRejectedValue({
-        rpcCode: -32601,
-        message: 'Method not found',
-      });
+      jest.spyOn(mockClient, 'call').mockRejectedValue(
+        new JSONRPCError('Method not found', -32601)
+      );
 
       await expect(wesClient.getResources(filters)).rejects.toThrow(WESClientError);
     });
@@ -285,10 +285,9 @@ describe('WESClientImpl', () => {
       const address = new Uint8Array(20).fill(1);
 
       // 模拟 INVALID_PARAMS 错误
-      jest.spyOn(mockClient, 'call').mockRejectedValue({
-        rpcCode: -32602,
-        message: 'Invalid params',
-      });
+      jest.spyOn(mockClient, 'call').mockRejectedValue(
+        new JSONRPCError('Invalid params', -32602)
+      );
 
       await expect(wesClient.listUTXOs(address)).rejects.toThrow(WESClientError);
     });
@@ -297,10 +296,9 @@ describe('WESClientImpl', () => {
       const address = new Uint8Array(20).fill(1);
 
       // 模拟 METHOD_NOT_FOUND 错误
-      jest.spyOn(mockClient, 'call').mockRejectedValue({
-        rpcCode: -32601,
-        message: 'Method not found',
-      });
+      jest.spyOn(mockClient, 'call').mockRejectedValue(
+        new JSONRPCError('Method not found', -32601)
+      );
 
       await expect(wesClient.listUTXOs(address)).rejects.toThrow(WESClientError);
     });

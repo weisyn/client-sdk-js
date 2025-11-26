@@ -27,6 +27,7 @@ import {
   convertLockingConditionsToProto,
   createDefaultSingleKeyLock,
   validateLockingConditions,
+  type LockingCondition,
 } from "./locking";
 
 /**
@@ -705,7 +706,122 @@ export class ResourceService {
       view.expiryTimestamp = itemMap.expiryTimestamp;
     }
 
+    // ✅ 新增：解析锁定条件
+    if (itemMap.lockingConditions && Array.isArray(itemMap.lockingConditions)) {
+      view.lockingConditions = this.parseLockingConditions(itemMap.lockingConditions);
+    }
+
     return view;
+  }
+
+  /**
+   * 解析锁定条件数组（从节点返回的 protojson 格式）
+   */
+  private parseLockingConditions(lcArray: any[]): LockingCondition[] {
+    const conditions: LockingCondition[] = [];
+    for (const lc of lcArray) {
+      try {
+        const condition = this.parseSingleLockingCondition(lc);
+        if (condition) {
+          conditions.push(condition);
+        }
+      } catch (error) {
+        // 解析失败时跳过，不影响其他条件
+        console.warn("解析锁定条件失败:", error, lc);
+      }
+    }
+    return conditions;
+  }
+
+  /**
+   * 解析单个锁定条件
+   */
+  private parseSingleLockingCondition(lc: any): LockingCondition | null {
+    // 节点返回的是 protojson 格式，字段名使用 snake_case
+    if (lc.single_key_lock) {
+      const skl = lc.single_key_lock;
+      const addressHex = skl.public_key?.value || skl.required_address_hash || "";
+      if (!addressHex) {
+        return null;
+      }
+      return {
+        type: "singleKey",
+        requiredAddressHash: hexToBytes(addressHex),
+        algorithm: skl.public_key?.algorithm || skl.required_algorithm || "ECDSA_SECP256K1",
+      };
+    }
+    if (lc.multi_key_lock) {
+      const mkl = lc.multi_key_lock;
+      return {
+        type: "multiKey",
+        requiredSignatures: mkl.required_signatures || 0,
+        authorizedKeys: (mkl.authorized_keys || []).map((k: any) => ({
+          value: hexToBytes(k.value || ""),
+          algorithm: k.algorithm || "ECDSA_SECP256K1",
+        })),
+        requireOrderedSignatures: mkl.require_ordered_signatures || false,
+      };
+    }
+    if (lc.time_lock) {
+      const tl = lc.time_lock;
+      const baseLock = tl.base_lock ? this.parseSingleLockingCondition(tl.base_lock) : null;
+      if (!baseLock) {
+        return null;
+      }
+      return {
+        type: "timeLock",
+        unlockTimestamp: tl.unlock_timestamp || 0,
+        baseLock: baseLock,
+      };
+    }
+    if (lc.height_lock) {
+      const hl = lc.height_lock;
+      const baseLock = hl.base_lock ? this.parseSingleLockingCondition(hl.base_lock) : null;
+      if (!baseLock) {
+        return null;
+      }
+      return {
+        type: "heightLock",
+        unlockHeight: hl.unlock_height || 0,
+        baseLock: baseLock,
+        confirmationBlocks: hl.confirmation_blocks || 6,
+      };
+    }
+    if (lc.delegation_lock) {
+      const dl = lc.delegation_lock;
+      return {
+        type: "delegation",
+        originalOwner: hexToBytes(dl.original_owner || ""),
+        allowedDelegates: (dl.allowed_delegates || []).map((addr: string) => hexToBytes(addr)),
+        authorizedOperations: dl.authorized_operations || [],
+        expiryDurationBlocks: dl.expiry_duration_blocks || 0,
+        maxValuePerOperation: dl.max_value_per_operation || 0,
+      };
+    }
+    if (lc.contract_lock) {
+      const cl = lc.contract_lock;
+      return {
+        type: "contract",
+        contractAddress: hexToBytes(cl.contract_address || ""),
+        requiredMethod: cl.required_method || "",
+        parameterSchema: cl.parameter_schema || "",
+        stateRequirements: cl.state_requirements || [],
+        maxExecutionTimeMs: cl.max_execution_time_ms || 5000,
+      };
+    }
+    if (lc.threshold_lock) {
+      const tl = lc.threshold_lock;
+      return {
+        type: "threshold",
+        threshold: tl.threshold || 0,
+        totalParties: tl.total_parties || 0,
+        partyVerificationKeys: (tl.party_verification_keys || []).map((key: string) =>
+          hexToBytes(key)
+        ),
+        signatureScheme: tl.signature_scheme || "BLS_THRESHOLD",
+      };
+    }
+    return null;
   }
 
   /**

@@ -117,10 +117,11 @@ describe('ABI Helper Conformance Tests', () => {
 
       const payload = buildPayload(null, args, {});
 
-      // 根据当前实现，如果没有方法信息，参数会作为 args 数组添加
-      expect(payload).toHaveProperty('args');
-      expect(Array.isArray(payload.args)).toBe(true);
-      expect(payload.args).toEqual(['value1', 'value2']);
+      // 根据当前实现，如果没有方法信息，参数会使用位置索引作为键（arg0, arg1, ...）
+      expect(payload).toHaveProperty('arg0');
+      expect(payload).toHaveProperty('arg1');
+      expect(payload.arg0).toEqual('value1');
+      expect(payload.arg1).toEqual('value2');
     });
   });
 

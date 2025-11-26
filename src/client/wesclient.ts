@@ -8,6 +8,7 @@
 import { IClient } from "./client";
 import { NetworkError, JSONRPCError } from "./errors";
 import {
+  OutPoint,
   UTXO,
   ResourceInfo,
   ResourceFilters,
@@ -56,6 +57,8 @@ export class WESClientError extends Error {
 export interface WESClient {
   // UTXO 操作（地址模型，与节点 API 对齐）
   listUTXOs(address: Uint8Array): Promise<UTXO[]>;
+  // 通过 OutPoint 获取单个 UTXO（通过地址查询后过滤）
+  getUTXO(outPoint: OutPoint): Promise<UTXO | null>;
 
   // 资源操作（封装）
   getResource(resourceId: Uint8Array): Promise<ResourceInfo>;
@@ -146,6 +149,73 @@ export class WESClientImpl implements WESClient {
       return utxosArray.map((item: any) => decodeUTXO(item));
     } catch (err) {
       throw wrapRPCError("wes_getUTXO", err);
+    }
+  }
+
+  /**
+   * 通过 OutPoint 获取单个 UTXO
+   *
+   * 注意：节点 API 只支持通过地址查询所有 UTXO，因此此方法需要：
+   * 1. 先通过交易 ID 查询交易信息获取输出地址
+   * 2. 然后通过地址查询所有 UTXO
+   * 3. 最后过滤出匹配的 UTXO
+   *
+   * 如果无法确定地址，则返回 null
+   */
+  async getUTXO(outPoint: OutPoint): Promise<UTXO | null> {
+    try {
+      // 先获取交易信息以确定输出地址
+      const tx = await this.getTransaction(outPoint.txId);
+
+      // 检查输出索引是否有效
+      if (!tx.outputs || outPoint.outputIndex >= tx.outputs.length) {
+        return null;
+      }
+
+      const output = tx.outputs[outPoint.outputIndex];
+      if (!output || typeof output !== "object") {
+        return null;
+      }
+
+      // 尝试从输出中获取地址（需要根据实际协议调整）
+      // 如果输出中没有地址信息，无法通过地址查询，返回 null
+      // 这是一个限制：节点 API 只支持通过地址查询 UTXO
+      const outputObj = output as any;
+      const addressHex = outputObj.address || outputObj.owner;
+
+      if (!addressHex) {
+        // 无法确定地址，返回 null
+        return null;
+      }
+
+      // 将地址转换为 Uint8Array
+      let addressBytes: Uint8Array;
+      if (typeof addressHex === "string") {
+        // 移除 0x 前缀（如果有）
+        const hex = addressHex.startsWith("0x") ? addressHex.slice(2) : addressHex;
+        addressBytes = new Uint8Array(
+          hex.match(/.{1,2}/g)?.map((byte) => parseInt(byte, 16)) || []
+        );
+      } else if (addressHex instanceof Uint8Array) {
+        addressBytes = addressHex;
+      } else {
+        return null;
+      }
+
+      // 查询该地址的所有 UTXO
+      const utxos = await this.listUTXOs(addressBytes);
+
+      // 查找匹配的 UTXO
+      const matchedUTXO = utxos.find(
+        (utxo) =>
+          utxo.outPoint.txId === outPoint.txId && utxo.outPoint.outputIndex === outPoint.outputIndex
+      );
+
+      return matchedUTXO || null;
+    } catch (err) {
+      // 如果查询失败，返回 null 而不是抛出错误
+      // 这样调用者可以处理"未找到"的情况
+      return null;
     }
   }
 

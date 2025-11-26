@@ -2,7 +2,7 @@
 
 **版本**：1.0  
 **状态**：stable  
-**最后更新**：2025-11-23  
+**最后更新**：2025-11-26  
 **所有者**：WES SDK 团队
 
 ---
@@ -14,7 +14,29 @@
 
 ---
 
-## [0.1.0-alpha] - 2025-11-23
+## [0.1.2-alpha] - 2025-11-26
+
+### 修复
+
+- ✅ **类型导出**: 导出 `LockingCondition`, `TxInput`, `TxOutput` 类型，修复 Workbench 构建错误
+- ✅ **WESClient API**: 添加 `getUTXO(outPoint: OutPoint)` 方法，支持通过 OutPoint 获取单个 UTXO
+- ✅ **Mock 支持**: 在 `WESClientMock` 中实现 `getUTXO` 方法
+
+### 改进
+
+- ✅ **类型导出**: 同时导出协议层和业务层的 `LockingCondition` 类型（`ResourceLockingCondition`）
+
+---
+
+## [0.1.1-alpha] - 2025-11-XX
+
+### 修复
+
+- Workbench 集成相关问题修复
+
+---
+
+## [0.1.0-alpha] - 2025-11-18
 
 ### 新增
 
@@ -64,9 +86,11 @@
 
 ### 已知限制
 
-- ⚠️ Keystore 的 Node.js 环境实现需要额外库支持
-- ⚠️ WebSocket 事件订阅需要与节点 API 对齐
-- ⚠️ 部分业务服务（Staking、Market、Governance）需要节点 API 支持
+根据 [实施计划](./_dev/IMPLEMENTATION_PLAN.md)，client-sdk-js 的核心功能已完成。当前限制主要与节点 API 和 Go SDK 的进度相关：
+
+- ⚠️ WebSocket 事件订阅功能需要与节点 API 进一步对齐（与 client-sdk-go 保持一致）
+- ⚠️ Keystore 在 Node.js 环境的部分功能需要额外库支持
+- ⚠️ 部分业务服务（Staking、Market、Governance）的完整实现需要节点 API 支持（与 client-sdk-go 保持一致）
 
 ---
 
@@ -74,15 +98,25 @@
 
 ### 计划中
 
-- [ ] 完善 Staking 服务实现
-- [ ] 完善 Market 服务实现
-- [ ] 完善 Governance 服务实现
-- [ ] 完善 Resource 服务实现
-- [ ] 完善 WebSocket 事件订阅
-- [ ] 完善 Keystore Node.js 支持
+根据 [实施计划](./_dev/IMPLEMENTATION_PLAN.md) 和与 client-sdk-go 保持一致的原则：
+
+#### 与节点 API 对齐（与 client-sdk-go 同步）
+
+- [ ] 完善 WebSocket 事件订阅（需要节点 API 支持）
+- [ ] 完善 Staking 服务实现（需要节点 API 支持）
+- [ ] 完善 Market 服务实现（需要节点 API 支持）
+- [ ] 完善 Governance 服务实现（需要节点 API 支持）
+
+#### 测试与质量
+
 - [ ] 增加单元测试覆盖率
 - [ ] 增加集成测试
 - [ ] 性能优化
+
+#### 文档与工具
+
+- [ ] 增加更多示例代码
+- [ ] 完善 Keystore Node.js 支持
 
 ---
 
