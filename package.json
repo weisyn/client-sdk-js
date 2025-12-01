@@ -62,7 +62,7 @@
     "node": ">=20.0.0"
   },
   "dependencies": {
-    "@noble/secp256k1": "^2.0.0",
+    "@noble/secp256k1": "^3.0.0",
     "axios": "^1.6.0",
     "js-sha3": "^0.8.0",
     "tslib": "^2.8.1",
