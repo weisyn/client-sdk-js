@@ -20,6 +20,14 @@ import {
   Transaction,
   SubmitTxResult,
   EventSubscription,
+  // 新增类型
+  BlockInfo,
+  TransactionReceipt,
+  FeeEstimate,
+  SyncStatus,
+  TokenBalance,
+  AIModelCallRequest,
+  AIModelCallResult,
 } from "./wesclient-types";
 import { batchGetResourcesSimple } from "../utils/batch_helpers";
 import { addressBytesToBase58 } from "../utils/address";
@@ -85,6 +93,42 @@ export interface WESClient {
 
   // 连接管理
   close(): Promise<void>;
+
+  // ========== 新增 API 方法 ==========
+
+  // 区块查询
+  getBlockByHeight(height: number, fullTx?: boolean): Promise<BlockInfo | null>;
+  getBlockByHash(hash: Uint8Array, fullTx?: boolean): Promise<BlockInfo | null>;
+
+  // 交易收据
+  getTransactionReceipt(txHash: string): Promise<TransactionReceipt | null>;
+
+  // 费用估算
+  estimateFee(tx: Transaction): Promise<FeeEstimate>;
+
+  // 同步状态
+  getSyncStatus(): Promise<SyncStatus>;
+
+  // 只读合约调用
+  contractCall(
+    contractHash: Uint8Array,
+    method: string,
+    params?: number[],
+    payload?: Uint8Array
+  ): Promise<Uint8Array>;
+
+  // 订阅管理
+  unsubscribe(subscriptionId: string): Promise<boolean>;
+
+  // 合约代币余额
+  getContractTokenBalance(
+    address: Uint8Array,
+    contractHash: Uint8Array,
+    tokenId?: string
+  ): Promise<TokenBalance>;
+
+  // AI 模型推理
+  callAIModel(request: AIModelCallRequest): Promise<AIModelCallResult>;
 }
 
 /**
@@ -247,17 +291,17 @@ export class WESClientImpl implements WESClient {
       if (filters.limit != null) req.limit = filters.limit;
       if (filters.offset != null) req.offset = filters.offset;
 
-      // 调用 WES 标准 RPC：wes_getResources
+      // ✅ 已迁移到 wes_listResources（基于 UTXO 视图）
       // 参数格式：[{ filters: { resourceType, owner, limit, offset } }]
-      const raw = await this.client.call("wes_getResources", [{ filters: req }]);
+      const raw = await this.client.call("wes_listResources", [{ filters: req }]);
       const wire = decodeResourceArray(raw);
       return wire.map(mapWireResourceToDomain);
     } catch (err) {
       // 如果 RPC 不存在，返回空数组（或抛出错误，取决于设计）
       if (err instanceof JSONRPCError && err.rpcCode === -32601) {
-        throw wrapRPCError("wes_getResources", err);
+        throw wrapRPCError("wes_listResources", err);
       }
-      throw wrapRPCError("wes_getResources", err);
+      throw wrapRPCError("wes_listResources", err);
     }
   }
 
@@ -386,6 +430,261 @@ export class WESClientImpl implements WESClient {
 
   async close(): Promise<void> {
     return this.client.close();
+  }
+
+  // ========== 新增 API 方法实现 ==========
+
+  /**
+   * 按高度查询区块
+   */
+  async getBlockByHeight(height: number, fullTx = false): Promise<BlockInfo | null> {
+    try {
+      const params = [`0x${height.toString(16)}`, fullTx];
+      const raw = await this.client.call("wes_getBlockByHeight", params);
+
+      if (!raw) {
+        return null;
+      }
+
+      return decodeBlockInfo(raw, fullTx);
+    } catch (err) {
+      throw wrapRPCError("wes_getBlockByHeight", err);
+    }
+  }
+
+  /**
+   * 按哈希查询区块
+   */
+  async getBlockByHash(hash: Uint8Array, fullTx = false): Promise<BlockInfo | null> {
+    if (hash.length !== 32) {
+      throw new WESClientError("INVALID_PARAMS", "block hash must be 32 bytes");
+    }
+
+    try {
+      const hashHex = `0x${bytesToHex(hash)}`;
+      const params = [hashHex, fullTx];
+      const raw = await this.client.call("wes_getBlockByHash", params);
+
+      if (!raw) {
+        return null;
+      }
+
+      return decodeBlockInfo(raw, fullTx);
+    } catch (err) {
+      throw wrapRPCError("wes_getBlockByHash", err);
+    }
+  }
+
+  /**
+   * 获取交易收据
+   */
+  async getTransactionReceipt(txHash: string): Promise<TransactionReceipt | null> {
+    if (!txHash) {
+      throw new WESClientError("INVALID_PARAMS", "transaction hash is required");
+    }
+
+    try {
+      const hash = txHash.startsWith("0x") ? txHash : `0x${txHash}`;
+      const raw = await this.client.call("wes_getTransactionReceipt", [hash]);
+
+      if (!raw) {
+        return null;
+      }
+
+      return decodeTransactionReceipt(raw);
+    } catch (err) {
+      throw wrapRPCError("wes_getTransactionReceipt", err);
+    }
+  }
+
+  /**
+   * 估算交易费用
+   */
+  async estimateFee(tx: Transaction): Promise<FeeEstimate> {
+    try {
+      // 节点端 wes_estimateFee 要求 params[0] 为“交易草稿对象”，不是已签名 hex
+      if (typeof tx === "string") {
+        throw new WESClientError(
+          "INVALID_PARAMS",
+          "wes_estimateFee expects a transaction draft object, not signed tx hex string"
+        );
+      }
+
+      const raw = await this.client.call("wes_estimateFee", [tx]);
+      return decodeFeeEstimate(raw);
+    } catch (err) {
+      throw wrapRPCError("wes_estimateFee", err);
+    }
+  }
+
+  /**
+   * 获取节点同步状态
+   */
+  async getSyncStatus(): Promise<SyncStatus> {
+    try {
+      const raw = await this.client.call("wes_syncing", []);
+
+      // 如果返回 false，表示已同步
+      if (raw === false) {
+        return {
+          syncing: false,
+          currentHeight: 0,
+          highestHeight: 0,
+          startingBlock: 0,
+          progress: 1.0,
+        };
+      }
+
+      return decodeSyncStatus(raw);
+    } catch (err) {
+      throw wrapRPCError("wes_syncing", err);
+    }
+  }
+
+  /**
+   * 只读合约调用
+   */
+  async contractCall(
+    contractHash: Uint8Array,
+    method: string,
+    params?: number[],
+    payload?: Uint8Array
+  ): Promise<Uint8Array> {
+    if (contractHash.length !== 32) {
+      throw new WESClientError("INVALID_PARAMS", "contract hash must be 32 bytes");
+    }
+
+    if (!method) {
+      throw new WESClientError("INVALID_PARAMS", "method name is required");
+    }
+
+    try {
+      // 节点端只解析 callData.data（支持 JSON string / 0xhex(json bytes) / 直接方法名）
+      // 为了携带 params/payload，这里统一用 JSON string 形式：{"method":"...","params":[...],"payload":"0x..."}
+      const spec: any = { method };
+      if (params && params.length > 0) {
+        spec.params = params;
+      }
+      if (payload && payload.length > 0) {
+        spec.payload = `0x${bytesToHex(payload)}`;
+      }
+
+      const callData: any = {
+        to: `0x${bytesToHex(contractHash)}`,
+        data: JSON.stringify(spec),
+      };
+
+      const raw = await this.client.call("wes_call", [callData]);
+
+      if (!raw || typeof raw !== "object") {
+        return new Uint8Array(0);
+      }
+
+      const resultMap = raw as any;
+      const returnData = resultMap.return_data || resultMap.returnData || "";
+
+      if (returnData) {
+        return hexStringToBytes(returnData);
+      }
+
+      return new Uint8Array(0);
+    } catch (err) {
+      throw wrapRPCError("wes_call", err);
+    }
+  }
+
+  /**
+   * 取消订阅
+   */
+  async unsubscribe(subscriptionId: string): Promise<boolean> {
+    if (!subscriptionId) {
+      throw new WESClientError("INVALID_PARAMS", "subscription ID is required");
+    }
+
+    try {
+      const raw = await this.client.call("wes_unsubscribe", [subscriptionId]);
+      return raw === true;
+    } catch (err) {
+      throw wrapRPCError("wes_unsubscribe", err);
+    }
+  }
+
+  /**
+   * 查询合约代币余额
+   */
+  async getContractTokenBalance(
+    address: Uint8Array,
+    contractHash: Uint8Array,
+    tokenId?: string
+  ): Promise<TokenBalance> {
+    if (address.length !== 20) {
+      throw new WESClientError("INVALID_PARAMS", "address must be 20 bytes");
+    }
+
+    if (contractHash.length !== 32) {
+      throw new WESClientError("INVALID_PARAMS", "contract hash must be 32 bytes");
+    }
+
+    try {
+      const addressBase58 = addressBytesToBase58(address);
+      const reqParams: any = {
+        address: addressBase58,
+        content_hash: bytesToHex(contractHash),
+      };
+
+      if (tokenId) {
+        reqParams.token_id = tokenId;
+      }
+
+      const raw = await this.client.call("wes_getContractTokenBalance", [reqParams]);
+      return decodeTokenBalance(raw);
+    } catch (err) {
+      throw wrapRPCError("wes_getContractTokenBalance", err);
+    }
+  }
+
+  /**
+   * 调用 AI 模型
+   */
+  async callAIModel(request: AIModelCallRequest): Promise<AIModelCallResult> {
+    if (!request) {
+      throw new WESClientError("INVALID_PARAMS", "request is required");
+    }
+
+    if (request.modelHash.length !== 32) {
+      throw new WESClientError("INVALID_PARAMS", "model hash must be 32 bytes");
+    }
+    if (!Array.isArray(request.inputs) || request.inputs.length === 0) {
+      throw new WESClientError("INVALID_PARAMS", "inputs is required and cannot be empty");
+    }
+
+    try {
+      const returnUnsignedTx = request.returnUnsignedTx === true;
+      if (!returnUnsignedTx && !request.privateKey) {
+        throw new WESClientError(
+          "INVALID_PARAMS",
+          "private_key is required when return_unsigned_tx is false"
+        );
+      }
+
+      const reqParams: any = {
+        model_hash: `0x${bytesToHex(request.modelHash)}`,
+        inputs: request.inputs,
+        return_unsigned_tx: returnUnsignedTx,
+      };
+
+      if (request.privateKey) {
+        reqParams.private_key = request.privateKey;
+      }
+      if (request.paymentToken) {
+        reqParams.payment_token = request.paymentToken;
+      }
+
+      const raw = await this.client.call("wes_callAIModel", [reqParams]);
+      return decodeAIModelCallResult(raw);
+    } catch (err) {
+      throw wrapRPCError("wes_callAIModel", err);
+    }
   }
 }
 
@@ -745,4 +1044,340 @@ function hexStringToBytes(hex: string): Uint8Array {
     bytes[i / 2] = parseInt(cleanHex.substr(i, 2), 16);
   }
   return bytes;
+}
+
+/**
+ * 将 Uint8Array 转换为 hex 字符串（不含 0x 前缀）
+ */
+function bytesToHex(bytes: Uint8Array): string {
+  return Array.from(bytes)
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+}
+
+// ========== 新增解码函数 ==========
+
+/**
+ * 解码区块信息
+ */
+function decodeBlockInfo(raw: any, fullTx: boolean): BlockInfo {
+  if (!raw || typeof raw !== "object") {
+    throw new WESClientError("DECODE_FAILED", "Invalid block response format");
+  }
+
+  const block: BlockInfo = {
+    height: 0,
+    hash: new Uint8Array(32),
+    parentHash: new Uint8Array(32),
+    timestamp: new Date(),
+    stateRoot: new Uint8Array(32),
+    difficulty: "",
+    miner: "",
+    size: 0,
+    txHashes: [],
+    transactions: [],
+    txCount: 0,
+  };
+
+  // 解析高度
+  if (typeof raw.height === "number") {
+    block.height = raw.height;
+  } else if (typeof raw.height === "string") {
+    const cleanHex = raw.height.startsWith("0x") ? raw.height.slice(2) : raw.height;
+    block.height = parseInt(cleanHex, 16) || 0;
+  }
+
+  // 解析哈希
+  const hashStr = raw.hash || raw.block_hash || "";
+  if (hashStr) {
+    block.hash = hexStringToBytes(hashStr);
+  }
+
+  // 解析父哈希
+  const parentHashStr = raw.parent_hash || raw.parentHash || "";
+  if (parentHashStr) {
+    block.parentHash = hexStringToBytes(parentHashStr);
+  }
+
+  // 解析时间戳
+  if (typeof raw.timestamp === "string") {
+    block.timestamp = new Date(raw.timestamp);
+  } else if (typeof raw.timestamp === "number") {
+    block.timestamp = new Date(raw.timestamp * 1000);
+  }
+
+  // 解析状态根
+  const stateRootStr = raw.state_root || raw.stateRoot || "";
+  if (stateRootStr) {
+    block.stateRoot = hexStringToBytes(stateRootStr);
+  }
+
+  // 解析难度
+  if (raw.difficulty) {
+    block.difficulty = String(raw.difficulty);
+  }
+
+  // 解析矿工
+  if (raw.miner) {
+    block.miner = raw.miner;
+  }
+
+  // 解析大小
+  if (typeof raw.size === "number") {
+    block.size = raw.size;
+  }
+
+  // 解析交易数量
+  if (typeof raw.tx_count === "number") {
+    block.txCount = raw.tx_count;
+  }
+
+  // 解析交易列表
+  if (fullTx && Array.isArray(raw.transactions)) {
+    block.transactions = raw.transactions.map((tx: any) => mapWireTransactionToDomain(tx));
+    block.txCount = block.transactions.length;
+  } else if (Array.isArray(raw.tx_hashes)) {
+    block.txHashes = raw.tx_hashes.filter((h: any) => typeof h === "string");
+    block.txCount = block.txHashes.length;
+  }
+
+  return block;
+}
+
+/**
+ * 解码交易收据
+ */
+function decodeTransactionReceipt(raw: any): TransactionReceipt {
+  if (!raw || typeof raw !== "object") {
+    throw new WESClientError("DECODE_FAILED", "Invalid transaction receipt format");
+  }
+
+  const receipt: TransactionReceipt = {
+    txHash: "",
+    txIndex: 0,
+    blockHeight: 0,
+    blockHash: new Uint8Array(32),
+    status: "0x0",
+  };
+
+  // 节点真实返回字段（internal/api/jsonrpc/methods/tx.go）：
+  // tx_hash, tx_index, block_height, block_hash, status("0x1"/"0x0"), state_root, timestamp, execution_result_hash, statusReason
+
+  receipt.txHash = raw.tx_hash || "";
+
+  if (typeof raw.tx_index === "number") {
+    receipt.txIndex = raw.tx_index;
+  }
+
+  // block_height
+  if (typeof raw.block_height === "number") {
+    receipt.blockHeight = raw.block_height;
+  } else if (typeof raw.block_height === "string") {
+    const cleanHex = raw.block_height.startsWith("0x")
+      ? raw.block_height.slice(2)
+      : raw.block_height;
+    receipt.blockHeight = parseInt(cleanHex, 16) || 0;
+  }
+
+  // block_hash
+  const blockHashStr = raw.block_hash || "";
+  if (blockHashStr) {
+    receipt.blockHash = hexStringToBytes(blockHashStr);
+  }
+
+  // status
+  if (raw.status === "0x1" || raw.status === "0x0") {
+    receipt.status = raw.status;
+  }
+  if (typeof raw.statusReason === "string") {
+    receipt.statusReason = raw.statusReason;
+  }
+  if (typeof raw.execution_result_hash === "string" && raw.execution_result_hash) {
+    receipt.executionResultHash = hexStringToBytes(raw.execution_result_hash);
+  }
+  if (typeof raw.state_root === "string" && raw.state_root) {
+    receipt.stateRoot = hexStringToBytes(raw.state_root);
+  }
+  if (typeof raw.timestamp === "number") {
+    receipt.timestamp = raw.timestamp;
+  }
+
+  return receipt;
+}
+
+/**
+ * 解码费用估算结果
+ */
+function decodeFeeEstimate(raw: any): FeeEstimate {
+  if (!raw || typeof raw !== "object") {
+    throw new WESClientError("DECODE_FAILED", "Invalid fee estimate format");
+  }
+
+  const fee: FeeEstimate = {
+    estimatedFee: BigInt(0),
+    feeRate: "",
+    numInputs: 0,
+    numOutputs: 0,
+  };
+
+  // 节点真实返回字段：estimated_fee, fee_rate, num_inputs, num_outputs
+  if (typeof raw.estimated_fee === "number") {
+    fee.estimatedFee = BigInt(raw.estimated_fee);
+  }
+  if (typeof raw.fee_rate === "string") {
+    fee.feeRate = raw.fee_rate;
+  }
+  if (typeof raw.num_inputs === "number") {
+    fee.numInputs = raw.num_inputs;
+  }
+  if (typeof raw.num_outputs === "number") {
+    fee.numOutputs = raw.num_outputs;
+  }
+
+  return fee;
+}
+
+/**
+ * 解码同步状态
+ */
+function decodeSyncStatus(raw: any): SyncStatus {
+  if (!raw || typeof raw !== "object") {
+    throw new WESClientError("DECODE_FAILED", "Invalid sync status format");
+  }
+
+  const status: SyncStatus = {
+    syncing: true,
+    currentHeight: 0,
+    highestHeight: 0,
+    startingBlock: 0,
+    progress: 0,
+  };
+
+  // 解析起始区块
+  if (typeof raw.startingBlock === "string") {
+    const cleanHex = raw.startingBlock.startsWith("0x")
+      ? raw.startingBlock.slice(2)
+      : raw.startingBlock;
+    status.startingBlock = parseInt(cleanHex, 16) || 0;
+  }
+
+  // 解析当前区块
+  if (typeof raw.currentBlock === "string") {
+    const cleanHex = raw.currentBlock.startsWith("0x")
+      ? raw.currentBlock.slice(2)
+      : raw.currentBlock;
+    status.currentHeight = parseInt(cleanHex, 16) || 0;
+  }
+
+  // 解析最高区块
+  if (typeof raw.highestBlock === "string") {
+    const cleanHex = raw.highestBlock.startsWith("0x")
+      ? raw.highestBlock.slice(2)
+      : raw.highestBlock;
+    status.highestHeight = parseInt(cleanHex, 16) || 0;
+  }
+
+  // 计算进度
+  if (status.highestHeight > 0) {
+    status.progress = status.currentHeight / status.highestHeight;
+  }
+
+  return status;
+}
+
+/**
+ * 解码代币余额
+ */
+function decodeTokenBalance(raw: any): TokenBalance {
+  if (!raw || typeof raw !== "object") {
+    throw new WESClientError("DECODE_FAILED", "Invalid token balance format");
+  }
+
+  const balance: TokenBalance = {
+    address: "",
+    contractHash: "",
+    contractAddress: "",
+    tokenId: "",
+    balance: "0",
+    utxoCount: 0,
+    height: 0,
+  };
+
+  // 解析地址
+  if (raw.address) {
+    balance.address = raw.address;
+  }
+
+  // 解析合约哈希
+  if (raw.content_hash) {
+    balance.contractHash = raw.content_hash;
+  }
+
+  // 解析合约地址
+  if (raw.contract_address) {
+    balance.contractAddress = raw.contract_address;
+  }
+
+  // 解析代币 ID
+  if (raw.token_id) {
+    balance.tokenId = raw.token_id;
+  }
+
+  // 解析余额
+  if (raw.balance) {
+    balance.balance = raw.balance;
+  }
+
+  // 解析余额（bigint 格式）
+  if (typeof raw.balance_uint64 === "number") {
+    balance.balanceUint64 = BigInt(raw.balance_uint64);
+  }
+
+  // 解析 UTXO 数量
+  if (typeof raw.utxo_count === "number") {
+    balance.utxoCount = raw.utxo_count;
+  }
+
+  // 解析区块高度
+  if (typeof raw.height === "number") {
+    balance.height = raw.height;
+  }
+
+  return balance;
+}
+
+/**
+ * 解码 AI 模型调用结果
+ */
+function decodeAIModelCallResult(raw: any): AIModelCallResult {
+  if (!raw || typeof raw !== "object") {
+    throw new WESClientError("DECODE_FAILED", "Invalid AI model call result format");
+  }
+
+  const result: AIModelCallResult = {
+    success: false,
+  };
+
+  // 解析成功标志
+  if (typeof raw.success === "boolean") {
+    result.success = raw.success;
+  }
+
+  if (typeof raw.tx_hash === "string") {
+    result.txHash = raw.tx_hash;
+  }
+  if (typeof raw.unsigned_tx === "string") {
+    result.unsignedTx = raw.unsigned_tx;
+  }
+  if (raw.outputs !== undefined) {
+    result.outputs = raw.outputs;
+  }
+  if (typeof raw.message === "string") {
+    result.message = raw.message;
+  }
+  if (raw.compute_info !== undefined) {
+    result.computeInfo = raw.compute_info;
+  }
+
+  return result;
 }

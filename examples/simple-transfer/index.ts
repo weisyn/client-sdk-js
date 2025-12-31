@@ -16,7 +16,7 @@ async function main() {
     // 1. 初始化客户端
     console.log('1️⃣ 初始化客户端...');
     const client = new Client({
-      endpoint: 'http://localhost:8545',
+      endpoint: 'http://localhost:28680',
       protocol: 'http',
       debug: true, // 启用调试日志
     });

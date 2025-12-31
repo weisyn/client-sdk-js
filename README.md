@@ -73,7 +73,7 @@ import { Client, TokenService, Wallet } from '@weisyn/client-sdk-js';
 
 // 1. 初始化客户端
 const client = new Client({
-  endpoint: 'http://localhost:8545',
+  endpoint: 'http://localhost:28680',
   protocol: 'http',
 });
 
@@ -107,7 +107,7 @@ console.log(`转账成功！交易哈希: ${result.txHash}`);
     const { Client, TokenService, Wallet } = WESClientSDK;
     
     const client = new Client({
-      endpoint: 'http://localhost:8545',
+      endpoint: 'http://localhost:28680',
       protocol: 'http',
     });
     
@@ -151,7 +151,7 @@ import { WESClient } from '@weisyn/client-sdk-js';
 
 // 初始化 WESClient
 const wesClient = new WESClient({
-  endpoint: 'http://localhost:8545',
+  endpoint: 'http://localhost:28680',
   protocol: 'http',
 });
 
@@ -247,9 +247,9 @@ graph TB
     
     subgraph API_GATEWAY["🌐 API 网关层"]
         direction LR
-        JSONRPC["JSON-RPC 2.0<br/>:8545"]
+        JSONRPC["JSON-RPC 2.0<br/>:28680"]
         HTTP["HTTP REST<br/>/api/v1/*"]
-        WS["WebSocket<br/>:8081"]
+        WS["WebSocket<br/>:28681"]
     end
     
     subgraph BIZ_LAYER["💼 业务服务层"]

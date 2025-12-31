@@ -9,7 +9,7 @@ import { ClientConfig } from "./types";
  */
 export function defaultConfig(): ClientConfig {
   return {
-    endpoint: "http://localhost:8545",
+    endpoint: "http://localhost:28680",
     protocol: "http",
     timeout: 30000,
     debug: false,

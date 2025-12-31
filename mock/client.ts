@@ -21,6 +21,13 @@ import type {
   Transaction,
   SubmitTxResult,
   EventSubscription,
+  BlockInfo,
+  TransactionReceipt,
+  FeeEstimate,
+  SyncStatus,
+  TokenBalance,
+  AIModelCallRequest,
+  AIModelCallResult,
 } from '../src/client/wesclient-types';
 
 /**
@@ -326,6 +333,103 @@ export class WESClientMock implements WESClient {
       chainId: '0x1',
       blockHeight: 1000,
     };
+  }
+
+  // ========== 新增 API 方法（用于满足最新 WESClient 接口） ==========
+
+  async getBlockByHeight(_height: number, _fullTx: boolean = false): Promise<BlockInfo | null> {
+    await this.delay();
+    if (this.errors.has('getBlockByHeight')) throw this.errors.get('getBlockByHeight')!;
+    if (this.responses.has('getBlockByHeight')) return this.responses.get('getBlockByHeight') as BlockInfo | null;
+    return null;
+  }
+
+  async getBlockByHash(_hash: Uint8Array, _fullTx: boolean = false): Promise<BlockInfo | null> {
+    await this.delay();
+    if (this.errors.has('getBlockByHash')) throw this.errors.get('getBlockByHash')!;
+    if (this.responses.has('getBlockByHash')) return this.responses.get('getBlockByHash') as BlockInfo | null;
+    return null;
+  }
+
+  async getTransactionReceipt(_txHash: string): Promise<TransactionReceipt | null> {
+    await this.delay();
+    if (this.errors.has('getTransactionReceipt')) throw this.errors.get('getTransactionReceipt')!;
+    if (this.responses.has('getTransactionReceipt')) {
+      return this.responses.get('getTransactionReceipt') as TransactionReceipt | null;
+    }
+    return null;
+  }
+
+  async estimateFee(_tx: Transaction): Promise<FeeEstimate> {
+    await this.delay();
+    if (this.errors.has('estimateFee')) throw this.errors.get('estimateFee')!;
+    if (this.responses.has('estimateFee')) return this.responses.get('estimateFee') as FeeEstimate;
+    return {
+      estimatedFee: 0n,
+      feeRate: '',
+      numInputs: 0,
+      numOutputs: 0,
+    };
+  }
+
+  async getSyncStatus(): Promise<SyncStatus> {
+    await this.delay();
+    if (this.errors.has('getSyncStatus')) throw this.errors.get('getSyncStatus')!;
+    if (this.responses.has('getSyncStatus')) return this.responses.get('getSyncStatus') as SyncStatus;
+    return {
+      syncing: false,
+      currentHeight: 0,
+      highestHeight: 0,
+      startingBlock: 0,
+      progress: 1,
+    };
+  }
+
+  async contractCall(
+    _contractHash: Uint8Array,
+    _method: string,
+    _params?: number[],
+    _payload?: Uint8Array
+  ): Promise<Uint8Array> {
+    await this.delay();
+    if (this.errors.has('contractCall')) throw this.errors.get('contractCall')!;
+    if (this.responses.has('contractCall')) return this.responses.get('contractCall') as Uint8Array;
+    return new Uint8Array(0);
+  }
+
+  async unsubscribe(_subscriptionId: string): Promise<boolean> {
+    await this.delay();
+    if (this.errors.has('unsubscribe')) throw this.errors.get('unsubscribe')!;
+    if (this.responses.has('unsubscribe')) return this.responses.get('unsubscribe') as boolean;
+    return true;
+  }
+
+  async getContractTokenBalance(
+    _address: Uint8Array,
+    _contractHash: Uint8Array,
+    _tokenId?: string
+  ): Promise<TokenBalance> {
+    await this.delay();
+    if (this.errors.has('getContractTokenBalance')) throw this.errors.get('getContractTokenBalance')!;
+    if (this.responses.has('getContractTokenBalance')) {
+      return this.responses.get('getContractTokenBalance') as TokenBalance;
+    }
+    return {
+      address: '',
+      contractHash: '',
+      contractAddress: '',
+      tokenId: _tokenId || 'default',
+      balance: '0',
+      utxoCount: 0,
+      height: 0,
+    };
+  }
+
+  async callAIModel(_request: AIModelCallRequest): Promise<AIModelCallResult> {
+    await this.delay();
+    if (this.errors.has('callAIModel')) throw this.errors.get('callAIModel')!;
+    if (this.responses.has('callAIModel')) return this.responses.get('callAIModel') as AIModelCallResult;
+    return { success: true };
   }
 
 

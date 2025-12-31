@@ -47,7 +47,7 @@ import { Client, TokenService, Wallet } from '@weisyn/client-sdk-js';
 
 // 1. 初始化客户端
 const client = new Client({
-  endpoint: 'http://localhost:8545',
+  endpoint: 'http://localhost:28680',
   protocol: 'http',
 });
 
@@ -81,7 +81,7 @@ console.log(`转账成功！交易哈希: ${result.txHash}`);
     const { Client, TokenService, Wallet } = WESClientSDK;
     
     const client = new Client({
-      endpoint: 'http://localhost:8545',
+      endpoint: 'http://localhost:28680',
       protocol: 'http',
     });
     
@@ -102,14 +102,14 @@ SDK 支持两种传输协议（浏览器环境不支持 gRPC）：
 ```typescript
 // HTTP 客户端（最常用）
 const client = new Client({
-  endpoint: 'http://localhost:8545',
+  endpoint: 'http://localhost:28680',
   protocol: 'http',
   timeout: 30000,
 });
 
 // WebSocket 客户端（用于事件订阅）
 const wsClient = new Client({
-  endpoint: 'ws://localhost:8081',
+  endpoint: 'ws://localhost:28681',
   protocol: 'websocket',
 });
 ```
@@ -123,7 +123,7 @@ import { WESClient } from '@weisyn/client-sdk-js';
 
 // 创建 WESClient
 const wesClient = new WESClient({
-  endpoint: 'http://localhost:8545',
+  endpoint: 'http://localhost:28680',
   protocol: 'http',
 });
 
@@ -215,18 +215,18 @@ sequenceDiagram
 ```typescript
 // 单客户端模式
 const client = new Client({
-  endpoint: 'http://localhost:8545',
+  endpoint: 'http://localhost:28680',
   protocol: 'http',
 });
 
 // 多客户端模式（HTTP + WebSocket）
 const httpClient = new Client({
-  endpoint: 'http://localhost:8545',
+  endpoint: 'http://localhost:28680',
   protocol: 'http',
 });
 
 const wsClient = new Client({
-  endpoint: 'ws://localhost:8081',
+  endpoint: 'ws://localhost:28681',
   protocol: 'websocket',
 });
 ```
@@ -300,7 +300,7 @@ try {
 ```typescript
 // 使用 WebSocket 客户端订阅事件
 const wsClient = new WESClient({
-  endpoint: 'ws://localhost:8081',
+  endpoint: 'ws://localhost:28681',
   protocol: 'websocket',
 });
 
@@ -468,7 +468,7 @@ const result = await resourceService.deployContract({
 ```typescript
 // 创建 WebSocket 客户端
 const wsClient = new WESClient({
-  endpoint: 'ws://localhost:8081',
+  endpoint: 'ws://localhost:28681',
   protocol: 'websocket',
 });
 
@@ -524,7 +524,7 @@ type WESClientErrorCode =
 ```typescript
 // HTTP 客户端自动管理连接
 const client = new Client({
-  endpoint: 'http://localhost:8545',
+  endpoint: 'http://localhost:28680',
   protocol: 'http',
   timeout: 30000,
 });
@@ -550,7 +550,7 @@ import { Client, TokenService, Wallet, WESClient } from '@weisyn/client-sdk-js';
 
 // 类型安全
 const client: Client = new Client({
-  endpoint: 'http://localhost:8545',
+  endpoint: 'http://localhost:28680',
   protocol: 'http',
 });
 
@@ -578,7 +578,7 @@ if (typeof window !== 'undefined') {
 ```typescript
 // 确保节点 API 支持 CORS
 const client = new Client({
-  endpoint: 'https://api.example.com:8545', // 使用 HTTPS
+  endpoint: 'https://api.example.com:28680', // 使用 HTTPS
   protocol: 'http',
 });
 ```

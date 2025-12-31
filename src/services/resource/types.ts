@@ -119,6 +119,43 @@ export interface OutPoint {
 }
 
 /**
+ * ContractExecutionConfig 智能合约执行配置
+ * 对应协议层 ContractExecutionConfig
+ */
+export interface ContractExecutionConfig {
+  /** ABI 版本 */
+  abiVersion?: string;
+  /** 导出函数列表 */
+  exportedFunctions?: string[];
+  /** 执行参数（引擎特定） */
+  executionParams?: Record<string, string>;
+}
+
+/**
+ * AIModelExecutionConfig AI 模型执行配置
+ * 对应协议层 AIModelExecutionConfig
+ */
+export interface AIModelExecutionConfig {
+  /** 模型格式（ONNX, TensorFlow等） */
+  modelFormat?: string;
+  /** 输入张量名称 */
+  inputNames?: string[];
+  /** 输出张量名称 */
+  outputNames?: string[];
+  /** 执行参数（引擎特定） */
+  executionParams?: Record<string, string>;
+}
+
+/**
+ * ExecutionConfig 执行配置（oneof 类型）
+ * 对应协议层 Resource.execution_config
+ */
+export type ExecutionConfig =
+  | { type: "contract"; config: ContractExecutionConfig }
+  | { type: "aimodel"; config: AIModelExecutionConfig }
+  | { type: "none" };
+
+/**
  * ResourceView 资源视图（完整的资源信息）
  *
  * 🎯 **核心职责**：
@@ -142,6 +179,13 @@ export interface ResourceView {
   mimeType?: string;
   size: number;
 
+  /** ✅ 新增：执行配置（仅可执行资源） */
+  executionConfig?: ExecutionConfig;
+
+  /** ✅ 新增：文件信息 */
+  originalFilename?: string;
+  fileExtension?: string;
+
   /** UTXO 视角 */
   outPoint?: OutPoint;
   owner: string;
@@ -159,8 +203,16 @@ export interface ResourceView {
 
   /** 区块信息 */
   deployTxId: string;
-  deployBlockHeight: number;
+  deployBlockHeight?: number;  // ✅ 改为可选，因为节点可能不返回
   deployBlockHash: string;
+  deployTimestamp?: number;  // ✅ 新增：部署区块时间戳（BlockHeader.timestamp）
+
+  /** ✅ 新增：创建上下文（ResourceOutput.creation_context） */
+  creationContext?: string;
+
+  /** ✅ 新增：交易元数据（Transaction.metadata） */
+  deployMemo?: string;  // Transaction.metadata.memo
+  deployTags?: string[]; // Transaction.metadata.tags
 }
 
 /**

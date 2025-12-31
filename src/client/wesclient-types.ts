@@ -178,3 +178,95 @@ export interface Event {
   blockHeight?: number;
   txHash?: string;
 }
+
+// ========== 新增类型定义（API 补齐） ==========
+
+/**
+ * BlockInfo - 区块信息
+ */
+export interface BlockInfo {
+  height: number; // 区块高度
+  hash: Uint8Array; // 区块哈希（32字节）
+  parentHash: Uint8Array; // 父区块哈希（32字节）
+  timestamp: Date; // 区块时间戳
+  stateRoot: Uint8Array; // 状态根（32字节）
+  difficulty: string; // 难度
+  miner: string; // 矿工地址
+  size: number; // 区块大小（字节）
+  txHashes: string[]; // 交易哈希列表（fullTx=false 时）
+  transactions: TransactionInfo[]; // 完整交易列表（fullTx=true 时）
+  txCount: number; // 交易数量
+}
+
+/**
+ * TransactionReceipt - 交易收据
+ */
+export interface TransactionReceipt {
+  txHash: string; // tx_hash（0x + 64hex）
+  txIndex: number; // tx_index
+  blockHeight: number; // block_height
+  blockHash: Uint8Array; // block_hash
+  status: "0x1" | "0x0"; // status
+  statusReason?: string; // statusReason（可选）
+  executionResultHash?: Uint8Array; // execution_result_hash（可选）
+  stateRoot?: Uint8Array; // state_root（可选）
+  timestamp?: number; // timestamp（秒）
+}
+
+/**
+ * FeeEstimate - 费用估算结果
+ */
+export interface FeeEstimate {
+  estimatedFee: bigint; // estimated_fee
+  feeRate: string; // fee_rate
+  numInputs: number; // num_inputs
+  numOutputs: number; // num_outputs
+}
+
+/**
+ * SyncStatus - 同步状态
+ */
+export interface SyncStatus {
+  syncing: boolean; // 是否正在同步
+  currentHeight: number; // 当前高度
+  highestHeight: number; // 网络最高高度
+  startingBlock: number; // 同步起始区块
+  progress: number; // 同步进度（0-1）
+}
+
+/**
+ * TokenBalance - 代币余额
+ */
+export interface TokenBalance {
+  address: string; // 查询的地址
+  contractHash: string; // 合约内容哈希
+  contractAddress: string; // 合约地址
+  tokenId: string; // 代币 ID
+  balance: string; // 余额（字符串格式，支持大数）
+  balanceUint64?: bigint; // 余额（bigint 格式）
+  utxoCount: number; // UTXO 数量
+  height: number; // 查询时的区块高度
+}
+
+/**
+ * AIModelCallRequest - AI 模型调用请求
+ */
+export interface AIModelCallRequest {
+  privateKey?: string; // return_unsigned_tx=false 时必需
+  modelHash: Uint8Array; // 模型内容哈希（32字节）
+  inputs: Record<string, unknown>[]; // 张量输入列表（与节点 API 对齐）
+  returnUnsignedTx?: boolean; // true 时仅返回 unsigned_tx
+  paymentToken?: string; // 可选：支付代币
+}
+
+/**
+ * AIModelCallResult - AI 模型调用结果
+ */
+export interface AIModelCallResult {
+  success: boolean; // success
+  txHash?: string; // tx_hash
+  unsignedTx?: string; // unsigned_tx（hex，不带 0x）
+  outputs?: unknown; // outputs
+  message?: string; // message
+  computeInfo?: unknown; // compute_info
+}

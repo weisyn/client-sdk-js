@@ -676,21 +676,71 @@ export class ResourceService {
    * 解析 ResourceView
    */
   private parseResourceView(itemMap: any): ResourceView {
+    // 转换 category：协议格式（RESOURCE_CATEGORY_EXECUTABLE）→ SDK 统一格式（EXECUTABLE）
+    // SDK 作为通用组件，应该隐藏协议层的格式细节，提供统一的、易用的接口
+    // 支持下划线命名（节点返回）和驼峰命名（兼容性）
+    let category: "EXECUTABLE" | "STATIC" = "STATIC";
+    const rawCategory = (itemMap.category || itemMap.resource_category || "").toUpperCase();
+    if (rawCategory.includes("EXECUTABLE")) {
+      category = "EXECUTABLE";
+    } else if (rawCategory.includes("STATIC")) {
+      category = "STATIC";
+    }
+    
+    // 转换 executableType：协议格式（EXECUTABLE_TYPE_CONTRACT）→ SDK 统一格式（CONTRACT）
+    // 支持下划线命名（节点返回）和驼峰命名（兼容性）
+    let executableType: "CONTRACT" | "AI_MODEL" | undefined = undefined;
+    const rawExecutableType = (itemMap.executableType || itemMap.executable_type || "").toUpperCase();
+    if (rawExecutableType.includes("CONTRACT")) {
+      executableType = "CONTRACT";
+    } else if (rawExecutableType.includes("AI_MODEL") || rawExecutableType.includes("AIMODEL")) {
+      executableType = "AI_MODEL";
+    }
+    
+    // 调试日志（始终输出，便于排查问题）
+    console.log(`[ResourceService.parseResourceView] Parsing resource:`, {
+      rawCategory: rawCategory,
+      category: category,
+      rawExecutableType: rawExecutableType,
+      executableType: executableType,
+      itemMapKeys: Object.keys(itemMap),
+      itemMapCategory: itemMap.category,
+      itemMapExecutableType: itemMap.executable_type,
+    });
+    
+    // 支持下划线命名（节点返回）和驼峰命名（兼容性）
+    const contentHashStr = itemMap.contentHash || itemMap.content_hash || "";
+    const mimeType = itemMap.mimeType || itemMap.mime_type || "";
+    const owner = itemMap.owner || itemMap.creator_address || "";
+    const status = itemMap.status || "ACTIVE";
+    const creationTimestamp = itemMap.creationTimestamp || itemMap.created_timestamp || 0;
+    const isImmutable = itemMap.isImmutable || itemMap.is_immutable || false;
+    const currentReferenceCount = itemMap.currentReferenceCount || itemMap.current_reference_count || 0;
+    const totalReferenceTimes = itemMap.totalReferenceTimes || itemMap.total_reference_times || 0;
+    const deployTxId = itemMap.deployTxId || itemMap.deploy_tx_id || "";
+    // deployBlockHeight 可能是 0（有效值），所以需要检查字段是否存在
+    const deployBlockHeight = itemMap.deployBlockHeight !== undefined 
+      ? itemMap.deployBlockHeight 
+      : (itemMap.deploy_block_height !== undefined ? itemMap.deploy_block_height : undefined);
+    const deployBlockHash = itemMap.deployBlockHash || itemMap.deploy_block_hash || "";
+    const deployTimestamp = itemMap.deployTimestamp || itemMap.deploy_timestamp;
+    
     const view: ResourceView = {
-      contentHash: itemMap.contentHash || "",
-      category: itemMap.category || "STATIC",
-      executableType: itemMap.executableType,
-      mimeType: itemMap.mimeType,
+      contentHash: contentHashStr,
+      category: category,  // 使用转换后的统一格式
+      executableType: executableType,  // 使用转换后的统一格式
+      mimeType: mimeType,
       size: itemMap.size || 0,
-      owner: itemMap.owner || "",
-      status: itemMap.status || "ACTIVE",
-      creationTimestamp: itemMap.creationTimestamp || 0,
-      isImmutable: itemMap.isImmutable || false,
-      currentReferenceCount: itemMap.currentReferenceCount || 0,
-      totalReferenceTimes: itemMap.totalReferenceTimes || 0,
-      deployTxId: itemMap.deployTxId || "",
-      deployBlockHeight: itemMap.deployBlockHeight || 0,
-      deployBlockHash: itemMap.deployBlockHash || "",
+      owner: owner,
+      status: status,
+      creationTimestamp: creationTimestamp,
+      isImmutable: isImmutable,
+      currentReferenceCount: currentReferenceCount,
+      totalReferenceTimes: totalReferenceTimes,
+      deployTxId: deployTxId,
+      ...(deployBlockHeight !== undefined && { deployBlockHeight: typeof deployBlockHeight === 'number' ? deployBlockHeight : parseInt(deployBlockHeight, 10) }),
+      deployBlockHash: deployBlockHash,
+      ...(deployTimestamp !== undefined && { deployTimestamp: typeof deployTimestamp === 'number' ? deployTimestamp : parseInt(deployTimestamp, 10) }),
     };
 
     // 解析 OutPoint
@@ -706,9 +756,122 @@ export class ResourceService {
       view.expiryTimestamp = itemMap.expiryTimestamp;
     }
 
+    // ✅ 新增：解析执行配置（execution_config）
+    if (category === "EXECUTABLE") {
+      const execConfig = itemMap.executionConfig || itemMap.execution_config;
+      
+      // 调试日志：打印原始 executionConfig 数据
+      console.log('[ResourceService.parseResourceView] Raw executionConfig:', {
+        category,
+        executableType,
+        execConfig,
+        execConfigType: typeof execConfig,
+        execConfigKeys: execConfig ? Object.keys(execConfig) : [],
+      });
+      
+      if (execConfig) {
+        // 处理合约执行配置
+        // protojson 序列化后的格式可能是：
+        // 1. { contract: { abiVersion, exportedFunctions, ... } }
+        // 2. { abiVersion, exportedFunctions, ... } (直接展开)
+        // 处理合约执行配置
+        // protojson 序列化 Resource_Contract 后的格式：
+        // { contract: { abi_version: "...", exported_functions: [...], ... } }
+        // 注意：UseProtoNames: true 会使用 snake_case 字段名
+        const contractConfig = execConfig.contract || execConfig;
+        
+        // 检查是否有合约配置的标识字段（支持多种命名格式）
+        const hasAbiVersion = !!(contractConfig.abiVersion || contractConfig.abi_version);
+        const hasExportedFunctions = !!(contractConfig.exportedFunctions || contractConfig.exported_functions);
+        const isContractConfig = hasAbiVersion || hasExportedFunctions;
+        
+        if (executableType === "CONTRACT" && isContractConfig) {
+          view.executionConfig = {
+            type: "contract",
+            config: {
+              abiVersion: contractConfig.abiVersion || contractConfig.abi_version || "",
+              exportedFunctions: contractConfig.exportedFunctions || contractConfig.exported_functions || [],
+              executionParams: contractConfig.executionParams || contractConfig.execution_params || {},
+            },
+          };
+          console.log('[ResourceService.parseResourceView] ✅ Parsed contract executionConfig:', view.executionConfig);
+        } else if (executableType === "CONTRACT") {
+          console.warn('[ResourceService.parseResourceView] ⚠️ CONTRACT resource but no contract config found:', {
+            execConfig,
+            contractConfig,
+            hasAbiVersion,
+            hasExportedFunctions,
+            contractConfigKeys: contractConfig ? Object.keys(contractConfig) : [],
+          });
+        } 
+        // 处理 AI 模型执行配置
+        // protojson 序列化后的格式可能是：
+        // 1. { aimodel: { modelFormat, inputNames, ... } }
+        // 2. { modelFormat, inputNames, ... } (直接展开)
+        else if (executableType === "AI_MODEL") {
+          const aimodelConfig = execConfig.aimodel || execConfig;
+          if (aimodelConfig.modelFormat || aimodelConfig.model_format || aimodelConfig.inputNames || aimodelConfig.input_names) {
+            view.executionConfig = {
+              type: "aimodel",
+              config: {
+                modelFormat: aimodelConfig.modelFormat || aimodelConfig.model_format || "",
+                inputNames: aimodelConfig.inputNames || aimodelConfig.input_names || [],
+                outputNames: aimodelConfig.outputNames || aimodelConfig.output_names || [],
+                executionParams: aimodelConfig.executionParams || aimodelConfig.execution_params || {},
+              },
+            };
+            console.log('[ResourceService.parseResourceView] Parsed aimodel executionConfig:', view.executionConfig);
+          }
+        }
+      } else {
+        console.warn('[ResourceService.parseResourceView] No executionConfig found for EXECUTABLE resource:', {
+          category,
+          executableType,
+          itemMapKeys: Object.keys(itemMap),
+        });
+      }
+    }
+
+    // ✅ 新增：解析文件信息
+    if (itemMap.originalFilename || itemMap.original_filename) {
+      view.originalFilename = itemMap.originalFilename || itemMap.original_filename;
+    }
+    if (itemMap.fileExtension || itemMap.file_extension) {
+      view.fileExtension = itemMap.fileExtension || itemMap.file_extension;
+    }
+
+    // ✅ 新增：解析创建上下文（ResourceOutput.creation_context）
+    if (itemMap.creationContext || itemMap.creation_context) {
+      view.creationContext = itemMap.creationContext || itemMap.creation_context;
+    }
+
+    // ✅ 新增：解析交易元数据（Transaction.metadata）
+    if (itemMap.deployMemo || itemMap.deploy_memo) {
+      view.deployMemo = itemMap.deployMemo || itemMap.deploy_memo;
+    }
+    if (itemMap.deployTags || itemMap.deploy_tags) {
+      const tags = itemMap.deployTags || itemMap.deploy_tags;
+      if (Array.isArray(tags)) {
+        view.deployTags = tags.filter(t => typeof t === 'string');
+      } else if (typeof tags === 'string' && tags.trim() !== '') {
+        // 支持逗号分隔的字符串格式
+        view.deployTags = tags.split(',').map(t => t.trim()).filter(t => t.length > 0);
+      }
+    }
+
     // ✅ 新增：解析锁定条件
+    // 调试日志：检查 locking_conditions 字段
+    console.log(`[ResourceService.parseResourceView] Checking locking_conditions:`, {
+      hasLockingConditions: !!itemMap.lockingConditions,
+      hasLocking_conditions: !!itemMap.locking_conditions,
+      lockingConditions: itemMap.lockingConditions,
+      locking_conditions: itemMap.locking_conditions,
+    });
+    
     if (itemMap.lockingConditions && Array.isArray(itemMap.lockingConditions)) {
       view.lockingConditions = this.parseLockingConditions(itemMap.lockingConditions);
+    } else if (itemMap.locking_conditions && Array.isArray(itemMap.locking_conditions)) {
+      view.lockingConditions = this.parseLockingConditions(itemMap.locking_conditions);
     }
 
     return view;

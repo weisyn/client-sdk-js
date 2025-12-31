@@ -109,7 +109,7 @@ import { Client, TokenService, Wallet } from '@weisyn/client-sdk-js';
 
 // 类型安全
 const client: Client = new Client({
-  endpoint: 'http://localhost:8545',
+  endpoint: 'http://localhost:28680',
   protocol: 'http',
 });
 
